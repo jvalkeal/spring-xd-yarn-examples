@@ -1,0 +1,12 @@
+rootProject.name = 'spring-xd-yarn-examples'
+
+include ':yarn:simple'
+
+rootProject.children.find {
+	if (it.name == 'yarn') {
+		it.name = 'yarn-xd-examples-common'		
+		it.children.each {
+			it.name = 'yarn-xd-examples-' + it.name
+		}
+	}
+}

@@ -1,4 +1,4 @@
-spring-xd-yarn-examples
+Spring XD Yarn Examples
 =======================
 
-Examples for spring-xd in Hadoop using spring-yarn
+tbd

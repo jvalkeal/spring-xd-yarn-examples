@@ -1,0 +1,6 @@
+description = 'Spring XD Yarn Examples Common'
+
+project('yarn-xd-examples-simple') {
+  description = 'Spring XD Yarn Simple Example'
+}
+
