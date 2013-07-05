@@ -45,11 +45,11 @@ $ cat target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043
 
 To run this example, open a command window, go to the the spring-xd-yarn-examples root directory, and type:
 
-		./gradlew -q ./gradlew run-yarn-xd-examples-simple
+		./gradlew -q run-yarn-xd-examples-simple
 
 Follow the application logs on a Hadoop cluster. After application is running execute request to add ticktock:
 
 		$curl -X PUT -H 'Content-Type: text/plain' -d "time | log" http://localhost:8282/streams/ticktock
 
-After this you should be able to see timestamp messages on a container log.
+After this you should be able to see timestamp messages on a container log. Application is not killed automatically so you need to kill it manually.
 	
