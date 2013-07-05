@@ -15,15 +15,23 @@
  */
 package org.springframework.yarn.examples;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.junit.Test;
 import org.springframework.core.io.Resource;
@@ -45,40 +53,61 @@ import org.springframework.yarn.test.junit.AbstractYarnClusterTests;
 public class SimpleExampleTests extends AbstractYarnClusterTests {
 
 	@Test
-	@Timed(millis=160000)
+	@Timed(millis=240000)
 	public void testAppSubmission() throws Exception {
-		YarnApplicationState state = submitApplicationAndWait(120, TimeUnit.SECONDS);
+		// submit and wait running state
+		ApplicationId applicationId = submitApplication();
+		assertNotNull(applicationId);
+		YarnApplicationState state = waitState(applicationId, 120, TimeUnit.SECONDS, YarnApplicationState.RUNNING);
 		assertNotNull(state);
-		assertTrue(state.equals(YarnApplicationState.FINISHED));
+		assertTrue(state.equals(YarnApplicationState.RUNNING));
 		
-		File workDir = getYarnCluster().getYarnWorkDir();
+		// wait and do ticktock put 
+		Thread.sleep(20000);		
+		assertTrue("Ticktock request failed", doTickTockTimeLogPut());
 		
+		// wait a bit for spring-xd containers to log something
+		Thread.sleep(10000);
+		
+		// long running app, kill it and check that state is KILLED
+		killApplication(applicationId);
+		state = getState(applicationId);
+		assertTrue(state.equals(YarnApplicationState.KILLED));
+		
+		// get log files
+		File workDir = getYarnCluster().getYarnWorkDir();		
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 		String locationPattern = "file:" + workDir.getAbsolutePath() + "/**/*.std*";
 		Resource[] resources = resolver.getResources(locationPattern);
 		
-		// appmaster and 1 containers should
-		// make it 4 log files
+		// appmaster and 1 container should make it 4 log files
 		assertThat(resources, notNullValue());
 		assertThat(resources.length, is(4));
 		
-//		for (Resource res : resources) {
-//			File file = res.getFile();		
-//			if (file.getName().endsWith("stdout")) {
-//				// there has to be some content in stdout file
-//				assertThat(file.length(), greaterThan(0l));
-//				if (file.getName().equals("Container.stdout")) {
-//					Scanner scanner = new Scanner(file);
-//					String content = scanner.useDelimiter("\\A").next();
-//					scanner.close();
-//					// this is what container will log in stdout
-//					assertThat(content, containsString("Hello from MultiContextBeanExample"));
-//				}
-//			} else if (file.getName().endsWith("stderr")) {
-//				// can't have anything in stderr files
-//				assertThat(file.length(), is(0l));
-//			}
-//		}		
+		// do some checks for log file content
+		for (Resource res : resources) {
+			File file = res.getFile();		
+			if (file.getName().endsWith("stdout")) {
+				// there has to be some content in stdout file
+				assertThat(file.length(), greaterThan(0l));
+				if (file.getName().equals("Container.stdout")) {
+					Scanner scanner = new Scanner(file);
+					String content = scanner.useDelimiter("\\A").next();
+					scanner.close();
+					// this is what xd container should log
+					assertThat(content, containsString("LoggingHandler"));
+				}
+			}
+		}		
+	}
+	
+	private boolean doTickTockTimeLogPut() throws Exception {
+		HttpClient httpclient = new HttpClient();		
+		PutMethod put = new PutMethod("http://localhost:8282/streams/ticktock");
+		StringRequestEntity entity = new StringRequestEntity("time | log", "text/plain", "UTF-8");
+		put.setRequestEntity(entity);
+		int executeMethod = httpclient.executeMethod(put);
+		return executeMethod == HttpStatus.SC_CREATED;	
 	}
 
 }

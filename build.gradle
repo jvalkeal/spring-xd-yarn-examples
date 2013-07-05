@@ -83,6 +83,7 @@ configure(yarnExampleProjectsWithCommon()) {
 		hadoopruntime.exclude group: 'commons-logging'
 		hadoopruntime.exclude group: 'org.codehaus.jettison'
 		hadoopruntime.exclude group: 'com.thoughtworks.xstream'
+		hadoopruntime.exclude group: 'org.apache.activemq'
 	}
 	dependencies {
 		compile "org.springframework.xd:spring-xd-dirt:$springXdVersion"

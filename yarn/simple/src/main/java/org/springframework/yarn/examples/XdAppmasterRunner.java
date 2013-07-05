@@ -38,7 +38,8 @@ public class XdAppmasterRunner extends CommandLineAppmasterRunner {
 	private final static Log log = LogFactory.getLog(XdAppmasterRunner.class);
 	
 	@Override
-	protected ConfigurableApplicationContext createChildContext(ConfigurableApplicationContext parent) {
+	protected ConfigurableApplicationContext getChildApplicationContext(
+			String configLocation, ConfigurableApplicationContext parent) {
 		
 		log.info("Using xd.transport=" + System.getProperty("xd.transport"));
 		log.info("Using xd.store=" + System.getProperty("xd.store"));
@@ -47,11 +48,12 @@ public class XdAppmasterRunner extends CommandLineAppmasterRunner {
 		XmlWebApplicationContext context = new XmlWebApplicationContext();
 		context.setConfigLocation("classpath:" + DefaultContainer.XD_INTERNAL_CONFIG_ROOT + "admin-server.xml");
 		
-		final StreamServer server = new StreamServer(context, 0);
+		final StreamServer server = new StreamServer(context, 8282);
 		server.afterPropertiesSet();
 		server.start();
 
-		log.info("Streamserver tomcat port=" + server.getLocalPort());
+		// when we get fix for 0-port trick in spring-xd
+		//log.info("Streamserver tomcat port=" + server.getLocalPort());
 		
 		context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
 			@Override

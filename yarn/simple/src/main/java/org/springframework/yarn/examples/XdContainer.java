@@ -62,8 +62,8 @@ public class XdContainer extends AbstractYarnContainer implements ApplicationCon
 
 		// wait for container exit
 		try {
-			log.info("XdContainer entering wait/sleep for 120 secs");
-			Thread.sleep(120000);
+			log.info("XdContainer entering wait/sleep for 5 min");
+			Thread.sleep(300000);
 		} catch (InterruptedException e) {
 		}
 		log.info("XdContainer: I'm done baby");
