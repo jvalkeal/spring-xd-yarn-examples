@@ -1,23 +1,49 @@
-Spring Yarn Multi Context Example
-=================================
+Spring XD Yarn Simple Example
+=============================
 
-To run this example, open a command window, go to the the spring-yarn-examples root directory, and type:
+This example demonstrates how to deploy spring-xd as a Hadoop Yarn managed application.
 
-		./gradlew -q run-yarn-examples-multi-context
+Yarn managed application will fire up Spring XD Admin as Application master and one container as Yarn managed container.
+
+# Prerequisites for Running Application in Hadoop
+
+Build depends on master code from spring-hadoop, spring-xd and testing code from github.com/jvalkeal/spring-hadoop/tree/SHDP-140-mr-compat branch.
+
+If application is run on a real Hadoop cluster file dependencies needs to be copied into HDFS.
+
+		$hadoop/bin/hdfs dfs -copyFromLocal build/libs/* /xd
+		$hadoop/bin/hdfs dfs -copyFromLocal build/dependency-libs/* /xd
 		
-To run it remotely, add parameters hdfs and resource manager:
+
+# Application Unit Testing
+
+To run test of this example, open a command window, go to the the spring-xd-yarn-examples root directory, and type:
+
+		./gradlew clean yarn-xd-examples-common:yarn-xd-examples-simple:build
 		
-		./gradlew -q run-yarn-examples-multi-context -Dhd.fs=hdfs://192.168.223.139:9000 -Dhd.rm=192.168.223.139:8032 -Dlocalresources.remote=hdfs://192.168.223.139:9000
+If test succeeds you should be able to see timestamps logged in container log:
 
-Or to run from your IDE, run one of the following commands once.
+```
+$ pwd
+/repos/spring-xd-yarn-examples/yarn/simple
+$ find target | grep std
+target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043225189_0001/container_1373043225189_0001_01_000002/Container.stdout
+target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043225189_0001/container_1373043225189_0001_01_000002/Container.stderr
+target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043225189_0001/container_1373043225189_0001_01_000001/Appmaster.stderr
+target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043225189_0001/container_1373043225189_0001_01_000001/Appmaster.stdout
 
-		./gradlew eclipse
-		./gradlew idea 
+$ cat target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043225189_0001/container_1373043225189_0001_01_000002/Container.stdout
+...
+2013-07-05 17:56:25,581 WARN [LoggingHandler] - 2013-07-05 17:56:25
+2013-07-05 17:56:26,591 WARN [LoggingHandler] - 2013-07-05 17:56:26
+2013-07-05 17:56:27,605 WARN [LoggingHandler] - 2013-07-05 17:56:27
+...
+```
 
-Then import the project into your IDE and run Main.java
 
-# Details
+# Running Application in Hadoop
 
-XXX
+To run this example, open a command window, go to the the spring-xd-yarn-examples root directory, and type:
 
-./gradlew clean :yarn-examples-common:yarn-examples-multi-context:build
+		./gradlew -q ./gradlew run-yarn-xd-examples-simple
+		
