@@ -9,7 +9,7 @@ Yarn managed application will fire up Spring XD Admin as Application master and 
 
 Build depends on master code from spring-hadoop, spring-xd and testing code from github.com/jvalkeal/spring-hadoop/tree/SHDP-140-mr-compat branch.
 
-If application is run on a real Hadoop cluster file dependencies needs to be copied into HDFS.
+If application is run on a real Hadoop cluster file dependencies needs to be copied into HDFS. Dependent files are resolved during the test phase.
 
 		$hadoop/bin/hdfs dfs -copyFromLocal build/libs/* /xd
 		$hadoop/bin/hdfs dfs -copyFromLocal build/dependency-libs/* /xd
@@ -46,4 +46,10 @@ $ cat target/yarn--1502101888/yarn--1502101888-logDir-nm-0_0/application_1373043
 To run this example, open a command window, go to the the spring-xd-yarn-examples root directory, and type:
 
 		./gradlew -q ./gradlew run-yarn-xd-examples-simple
-		
+
+Follow the application logs on a Hadoop cluster. After application is running execute request to add ticktock:
+
+		$curl -X PUT -H 'Content-Type: text/plain' -d "time | log" http://localhost:8282/streams/ticktock
+
+After this you should be able to see timestamp messages on a container log.
+	
