@@ -28,9 +28,9 @@
 
 	<util:properties id="arguments">
 		<prop key="container-count">1</prop>
-		<prop key="-Dxd.store">redis</prop>
-		<prop key="-Dxd.transport">redis</prop>
-		<prop key="-Dxd.home">/home/jvalkeal/Downloads/spring-xd-1.0.0.M1/xd</prop>
+		<prop key="-Dxd.store">${xd.store}</prop>
+		<prop key="-Dxd.transport">${xd.transport}</prop>
+		<prop key="-Dxd.home">${xd.home}</prop>
 	</util:properties>
 
 	<yarn:client app-name="xd-simple">

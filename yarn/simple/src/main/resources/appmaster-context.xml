@@ -25,12 +25,12 @@
 		<yarn:classpath>
 			./*
 		</yarn:classpath>
-		xd.home=/home/jvalkeal/Downloads/spring-xd-1.0.0.M1/xd
+		xd.home=${xd.home}
 	</yarn:environment>
 
 	<util:properties id="arguments">
-		<prop key="-Dxd.transport">redis</prop>
-		<prop key="-Dxd.home">/home/jvalkeal/Downloads/spring-xd-1.0.0.M1/xd</prop>
+		<prop key="-Dxd.transport">${xd.transport}</prop>
+		<prop key="-Dxd.home">${xd.home}</prop>
 	</util:properties>
 
 	<yarn:master>

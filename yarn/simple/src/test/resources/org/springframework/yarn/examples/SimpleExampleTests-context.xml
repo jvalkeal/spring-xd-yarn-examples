@@ -9,6 +9,8 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 	
+	<context:property-placeholder location="hadoop.properties" system-properties-mode="OVERRIDE"/>
+	
 	<yarn:localresources>
 		<yarn:copy src="file:build/dependency-libs/*" dest="/xd/"/>
 		<yarn:copy src="file:build/libs/*" dest="/xd/"/>
@@ -23,9 +25,9 @@
 
 	<util:properties id="arguments">
 		<prop key="container-count">1</prop>
-		<prop key="-Dxd.store">redis</prop>
-		<prop key="-Dxd.transport">redis</prop>
-		<prop key="-Dxd.home">/home/jvalkeal/Downloads/spring-xd-1.0.0.M1/xd</prop>
+		<prop key="-Dxd.store">${xd.store}</prop>
+		<prop key="-Dxd.transport">${xd.transport}</prop>
+		<prop key="-Dxd.home">${xd.home}</prop>
 	</util:properties>
 
 	<yarn:client app-name="xd-simple" memory="1400">
