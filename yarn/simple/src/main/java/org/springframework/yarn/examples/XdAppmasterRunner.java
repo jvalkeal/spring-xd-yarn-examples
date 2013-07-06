@@ -24,6 +24,8 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 import org.springframework.xd.dirt.container.DefaultContainer;
 import org.springframework.xd.dirt.stream.StreamServer;
 import org.springframework.yarn.am.CommandLineAppmasterRunner;
+import org.springframework.yarn.am.track.UrlAppmasterTrackService;
+import org.springframework.yarn.support.YarnContextUtils;
 
 /**
  * Custom command line runner for XD Yarn Application Master.
@@ -36,35 +38,43 @@ import org.springframework.yarn.am.CommandLineAppmasterRunner;
 public class XdAppmasterRunner extends CommandLineAppmasterRunner {
 
 	private final static Log log = LogFactory.getLog(XdAppmasterRunner.class);
-	
+
 	@Override
 	protected ConfigurableApplicationContext getChildApplicationContext(
 			String configLocation, ConfigurableApplicationContext parent) {
-		
+
 		log.info("Using xd.transport=" + System.getProperty("xd.transport"));
 		log.info("Using xd.store=" + System.getProperty("xd.store"));
 		log.info("Using xd.home=" + System.getProperty("xd.home"));
-		
+
 		XmlWebApplicationContext context = new XmlWebApplicationContext();
 		context.setConfigLocation("classpath:" + DefaultContainer.XD_INTERNAL_CONFIG_ROOT + "admin-server.xml");
-		
+
 		final StreamServer server = new StreamServer(context, 8282);
 		server.afterPropertiesSet();
 		server.start();
 
 		// when we get fix for 0-port trick in spring-xd
 		//log.info("Streamserver tomcat port=" + server.getLocalPort());
-		
+
+		// context is already refreshed so just register singleton
+		// not really a proper way to do it but serves the demo purpose
+		// if streamserver could choose free port then below would
+		// make much more sense
+		parent.getBeanFactory().registerSingleton(
+				YarnContextUtils.TASK_AMTRACKSERVER_BEAN_NAME,
+				new UrlAppmasterTrackService("http://localhost:" + server.getPort()));
+
 		context.addApplicationListener(new ApplicationListener<ContextClosedEvent>() {
 			@Override
 			public void onApplicationEvent(ContextClosedEvent event) {
 				server.stop();
 			}
 		});
-		
+
 		return context;
 	}
-	
+
 	public static void main(String[] args) {
 		new XdAppmasterRunner().doMain(args);
 	}
