@@ -31,8 +31,6 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.junit.Test;
@@ -53,7 +51,7 @@ import org.springframework.yarn.test.junit.AbstractYarnClusterTests;
 @ContextConfiguration(loader=YarnDelegatingSmartContextLoader.class)
 @MiniYarnCluster
 public class SimpleExampleTests extends AbstractYarnClusterTests {
-	private final static Log log = LogFactory.getLog(SimpleExampleTests.class);
+
 	@Test
 	@Timed(millis=240000)
 	public void testAppSubmission() throws Exception {
@@ -105,7 +103,6 @@ public class SimpleExampleTests extends AbstractYarnClusterTests {
 
 	private boolean doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
 		HttpClient httpclient = new HttpClient();
-		log.info("XX trackurl: " + findTickTockUrl(applicationId));
 		PutMethod put = new PutMethod(findTickTockUrl(applicationId));
 		StringRequestEntity entity = new StringRequestEntity("time | log", "text/plain", "UTF-8");
 		put.setRequestEntity(entity);
