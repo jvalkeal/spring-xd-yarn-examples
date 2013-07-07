@@ -31,7 +31,7 @@ import org.springframework.yarn.support.YarnContextUtils;
  * Custom command line runner for XD Yarn Application Master.
  * This is needed order to manually setup Web Application
  * Context needed my XD Admin build-in mvc layer.
- * 
+ *
  * @author Janne Valkealahti
  *
  */
@@ -78,5 +78,5 @@ public class XdAppmasterRunner extends CommandLineAppmasterRunner {
 	public static void main(String[] args) {
 		new XdAppmasterRunner().doMain(args);
 	}
-	
+
 }

@@ -31,6 +31,8 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.junit.Test;
@@ -44,14 +46,14 @@ import org.springframework.yarn.test.junit.AbstractYarnClusterTests;
 
 /**
  * Tests for Spring XD Yarn Simple example.
- * 
+ *
  * @author Janne Valkealahti
  *
  */
 @ContextConfiguration(loader=YarnDelegatingSmartContextLoader.class)
 @MiniYarnCluster
 public class SimpleExampleTests extends AbstractYarnClusterTests {
-
+	private final static Log log = LogFactory.getLog(SimpleExampleTests.class);
 	@Test
 	@Timed(millis=240000)
 	public void testAppSubmission() throws Exception {
@@ -61,32 +63,32 @@ public class SimpleExampleTests extends AbstractYarnClusterTests {
 		YarnApplicationState state = waitState(applicationId, 120, TimeUnit.SECONDS, YarnApplicationState.RUNNING);
 		assertNotNull(state);
 		assertTrue(state.equals(YarnApplicationState.RUNNING));
-		
-		// wait and do ticktock put 
-		Thread.sleep(20000);		
-		assertTrue("Ticktock request failed", doTickTockTimeLogPut());
-		
+
+		// wait and do ticktock put
+		Thread.sleep(20000);
+		assertTrue("Ticktock request failed", doTickTockTimeLogPut(applicationId));
+
 		// wait a bit for spring-xd containers to log something
 		Thread.sleep(10000);
-		
+
 		// long running app, kill it and check that state is KILLED
 		killApplication(applicationId);
 		state = getState(applicationId);
 		assertTrue(state.equals(YarnApplicationState.KILLED));
-		
+
 		// get log files
-		File workDir = getYarnCluster().getYarnWorkDir();		
+		File workDir = getYarnCluster().getYarnWorkDir();
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 		String locationPattern = "file:" + workDir.getAbsolutePath() + "/**/*.std*";
 		Resource[] resources = resolver.getResources(locationPattern);
-		
+
 		// appmaster and 1 container should make it 4 log files
 		assertThat(resources, notNullValue());
 		assertThat(resources.length, is(4));
-		
+
 		// do some checks for log file content
 		for (Resource res : resources) {
-			File file = res.getFile();		
+			File file = res.getFile();
 			if (file.getName().endsWith("stdout")) {
 				// there has to be some content in stdout file
 				assertThat(file.length(), greaterThan(0l));
@@ -98,16 +100,25 @@ public class SimpleExampleTests extends AbstractYarnClusterTests {
 					assertThat(content, containsString("LoggingHandler"));
 				}
 			}
-		}		
+		}
 	}
-	
-	private boolean doTickTockTimeLogPut() throws Exception {
-		HttpClient httpclient = new HttpClient();		
-		PutMethod put = new PutMethod("http://localhost:8282/streams/ticktock");
+
+	private boolean doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
+		HttpClient httpclient = new HttpClient();
+		log.info("XX trackurl: " + findTickTockUrl(applicationId));
+		PutMethod put = new PutMethod(findTickTockUrl(applicationId));
 		StringRequestEntity entity = new StringRequestEntity("time | log", "text/plain", "UTF-8");
 		put.setRequestEntity(entity);
 		int executeMethod = httpclient.executeMethod(put);
-		return executeMethod == HttpStatus.SC_CREATED;	
+		return executeMethod == HttpStatus.SC_CREATED;
+	}
+
+	private String findTickTockUrl(ApplicationId applicationId) {
+		// returned track url is "<rm manager>:xxxx//<node>:xxxx"
+		// we need the last part
+		return "http://" +
+				getYarnClient().getApplicationReport(applicationId).getTrackingUrl().split("//")[1] +
+				"/streams/ticktock";
 	}
 
 }
