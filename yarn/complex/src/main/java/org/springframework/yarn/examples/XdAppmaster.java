@@ -114,8 +114,8 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 			env.put(YarnSystemConstants.AMSERVICE_PORT, Integer.toString(port));
 			env.put(YarnSystemConstants.AMSERVICE_HOST, address);
 			env.put(YarnSystemConstants.SYARN_CONTAINER_ID, ConverterUtils.toString(context.getContainerId()));
-			String xdGroup = getManagedGroups().getGroupName(ConverterUtils.toString(context.getContainerId()));
-			env.put("syarn.xd.group", xdGroup != null ? xdGroup : "");
+			String xdGroup = getManagedGroups().findGroupNameByMember(ConverterUtils.toString(context.getContainerId()));
+			env.put("syarn.cg.group", xdGroup != null ? xdGroup : "");
 			context.setEnvironment(env);
 			return context;
 		} else {
@@ -126,7 +126,7 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 	@Override
 	protected boolean onContainerFailed(ContainerId containerId) {
 		log.info("onContainerFailed: " + containerId);
-		return true;
+		return false;
 	}
 
 	/**
@@ -141,6 +141,7 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 		@Override
 		public void nodeDead(HeartbeatNode node, NodeState state) {
 			log.info("XXX nodeDead nodeId=" + node.getId());
+			XdAppmaster.this.handleContainerFailed(ConverterUtils.toContainerId(node.getId()));
 		}
 	}
 

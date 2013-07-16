@@ -32,7 +32,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
- *
+ * Generic resolver which is able to map {@link Container}s
+ * into groups based of set resolve instructions.
  *
  * @author Janne Valkealahti
  *
@@ -41,10 +42,13 @@ public class GenericContainerGroupResolver implements ContainerGroupResolver, In
 
 	private final static Log log = LogFactory.getLog(GenericContainerGroupResolver.class);
 
+	/** Map of resolve instructions */
 	private Map<String, List<String>> resolves = new Hashtable<String, List<String>>();
 
+	/** Hadoop configuration */
 	private Configuration configuration;
 
+	/** Flag telling if rack resolving is used */
 	private boolean resolveRacks;
 
 	@Override
@@ -63,7 +67,61 @@ public class GenericContainerGroupResolver implements ContainerGroupResolver, In
 		return found;
 	}
 
-	private boolean safeMatch(String string, String pattern) {
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		if (resolveRacks) {
+			Assert.notNull(configuration, "Rack resolving enabled, Hadoop configuration must be set");
+		}
+	}
+
+	/**
+	 * Sets the resolve racks.
+	 *
+	 * @param resolveRacks the new resolve racks
+	 */
+	public void setResolveRacks(boolean resolveRacks) {
+		this.resolveRacks = resolveRacks;
+	}
+
+	/**
+	 * Adds the resolve.
+	 *
+	 * @param groupName the group name
+	 * @param hosts the hosts
+	 */
+	public void addResolve(String groupName, String... hosts) {
+		resolves.put(groupName, Arrays.asList(hosts));
+	}
+
+	/**
+	 * Sets the new resolves. Old existing resolves
+	 * are overridden.
+	 *
+	 * @param resolves the resolves
+	 */
+	public void setResolves(Map<String, List<String>> resolves) {
+		this.resolves = resolves;
+	}
+
+	/**
+	 * Sets the configuration.
+	 *
+	 * @param configuration the new configuration
+	 */
+	public void setConfiguration(Configuration configuration) {
+		this.configuration = configuration;
+	}
+
+	/**
+	 * Safe match for null checks. Also adds
+	 * "*" to match all because it is not valid
+	 * regex pattern.
+	 *
+	 * @param string the string to match
+	 * @param pattern regex matching pattern
+	 * @return True if matches
+	 */
+	private static boolean safeMatch(String string, String pattern) {
 		if (!StringUtils.hasText(string) || !StringUtils.hasText(pattern)) {
 			return false;
 		}
@@ -78,27 +136,5 @@ public class GenericContainerGroupResolver implements ContainerGroupResolver, In
 		return false;
 	}
 
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		if (resolveRacks) {
-			Assert.notNull(configuration, "Rack resolving enabled, Hadoop configuration must be set");
-		}
-	}
-
-	public void setResolveRacks(boolean resolveRacks) {
-		this.resolveRacks = resolveRacks;
-	}
-
-	public void addResolve(String groupName, String... hosts) {
-		resolves.put(groupName, Arrays.asList(hosts));
-	}
-
-	public void setResolves(Map<String, List<String>> resolves) {
-		this.resolves = resolves;
-	}
-
-	public void setConfiguration(Configuration configuration) {
-		this.configuration = configuration;
-	}
 
 }

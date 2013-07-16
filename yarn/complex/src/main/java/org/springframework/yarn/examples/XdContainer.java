@@ -50,7 +50,7 @@ public class XdContainer extends AbstractYarnContainer implements ApplicationCon
 	protected void runInternal() {
 		log.info("XdContainer internal run starting, setting up XD container launcher");
 		log.info("Using xd.home=" + getEnvironment("xd.home"));
-		log.info("Using syarn.xd.group=" + getEnvironment("syarn.xd.group"));
+		log.info("Using syarn.cg.group=" + getEnvironment("syarn.cg.group"));
 
 		// setup needed options
 		ContainerOptions options = new ContainerOptions();

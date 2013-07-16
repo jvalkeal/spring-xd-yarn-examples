@@ -44,14 +44,24 @@ import org.springframework.yarn.am.allocate.ContainerAllocateData;
  */
 public interface ManagedContainerGroups {
 
-
 	/**
 	 * Adds the Yarn {@link Container} into managed container
-	 * groups.
+	 * groups. Implementation is responsible for container.
+	 * Generally this means that user of the implementation
+	 * should pass {@link Container} into
+	 * {@link ManagedContainerGroups} either after allocation
+	 * or launch.
 	 *
 	 * @param container the container
 	 */
 	void addContainer(Container container);
+
+	/**
+	 * Removes the member managed container groups.
+	 *
+	 * @param id the member id
+	 */
+	void removeMember(String id);
 
 	/**
 	 * Sets the managed group projected size.
@@ -62,25 +72,34 @@ public interface ManagedContainerGroups {
 	void setProjectedSize(String group, int count);
 
 	/**
-	 * Gets the container allocate data.
+	 * Gets the container allocate data. This method
+	 * needs to be called periodically to get notification
+	 * from a {@link ManagedContainerGroups} what kind
+	 * of {@link ContainerAllocateData} should be used
+	 * to allocate new containers.
 	 *
 	 * @return the container allocate data
 	 */
 	ContainerAllocateData getContainerAllocateData();
 
 	/**
-	 * Gets the released containers.
+	 * Gets the released containers. This method
+	 * needs to be called periodically to get
+	 * notification for {@link ContainerId}s to
+	 * be released.
 	 *
 	 * @return the released containers
 	 */
 	List<ContainerId> getReleasedContainers();
 
 	/**
-	 * Gets the group name.
+	 * Gets the group name. Method should
+	 * find a match for group name by using
+	 * a given group member id.
 	 *
-	 * @param id the id
+	 * @param id the member id
 	 * @return the group name
 	 */
-	String getGroupName(String id);
+	String findGroupNameByMember(String id);
 
 }

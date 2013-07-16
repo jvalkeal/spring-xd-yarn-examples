@@ -20,6 +20,8 @@ import java.util.List;
 import org.apache.hadoop.yarn.api.records.Container;
 
 /**
+ * Interface for resolving group names
+ * based on {@link Container}.
  *
  * @author Janne Valkealahti
  *
@@ -30,7 +32,7 @@ public interface ContainerGroupResolver {
 	 * Resolve group names.
 	 *
 	 * @param container the container
-	 * @return the list
+	 * @return the list of matched group names
 	 */
 	List<String> resolveGroupNames(Container container);
 

@@ -96,6 +96,19 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 	}
 
 	@Override
+	public void removeMember(String id) {
+		for (Entry<String, Group> entry : managedGroups.entrySet()) {
+			Group group = entry.getValue();
+			GroupMember m = new GroupMember(id);
+			log.info("XXX trying to remove member " + m + " from group " + group);
+			if (group.getMembers().remove(m)) {
+				log.info("XXX removed member " + m);
+				break;
+			}
+		}
+	}
+
+	@Override
 	public void setProjectedSize(String group, int count) {
 		if (!managedGroups.containsKey(group)) {
 			managedGroups.put(group, new Group(group));
@@ -117,12 +130,6 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 				data.addAny(group.getProjectedSize()-group.getSize());
 				group.setDirty(false);
 			}
-//			if (group.getId().equals(DEFAULT_GROUP)) {
-//				if (group.isDirty()) {
-//					data.addAny(group.getProjectedSize()-group.getSize());
-//					group.setDirty(false);
-//				}
-//			}
 		}
 		return data;
 	}
@@ -143,7 +150,7 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 	}
 
 	@Override
-	public String getGroupName(String id) {
+	public String findGroupNameByMember(String id) {
 		String found = null;
 		for (Entry<String, Group> entry : managedGroups.entrySet()) {
 			if (entry.getValue().getMembers().contains(new GroupMember(id))) {
@@ -154,68 +161,103 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 		return found;
 	}
 
+	/**
+	 * Internal wrapper for handling null resolver.
+	 *
+	 * @param container the container
+	 * @return the list of resolved group names
+	 */
 	private List<String> resolveGroupNamesInternal(Container container) {
-		return resolver != null ? resolver.resolveGroupNames(container) : null;
+		return resolver != null ? resolver.resolveGroupNames(container) : new ArrayList<String>();
 	}
 
+	/**
+	 * Helper class for grouping
+	 */
 	private class Group {
 		private final String id;
 		private Set<GroupMember> members = new HashSet<GenericManagedContainerGroups.GroupMember>();
 		private int projectedSize;
 		private boolean dirty = true;
+
 		public Group(String id) {
 			this.id = id;
 		}
+
 		public int getSize() {
 			return members.size();
 		}
+
 		public Set<GroupMember> getMembers() {
 			return members;
 		}
+
 		public void addMember(GroupMember member) {
 			members.add(member);
 		}
+
 		public int getProjectedSize() {
 			return projectedSize;
 		}
+
 		public void setProjectedSize(int projectedSize) {
 			if (projectedSize != getSize()) {
 				dirty = true;
 			}
 			this.projectedSize = projectedSize;
 		}
+
 		public boolean isDirty() {
 			return dirty;
 		}
+
 		public void setDirty(boolean dirty) {
 			this.dirty = dirty;
 		}
+
 		public boolean isFull() {
 			return !(getSize() < projectedSize);
 		}
+
 		public String getId() {
 			return id;
 		}
+
+		@Override
+		public String toString() {
+			return "Group [id=" + id + ", members=" + members + ", projectedSize=" + projectedSize + ", dirty=" + dirty
+					+ "]";
+		}
+
 	}
 
+	/**
+	 * Helper class for group members
+	 */
 	private class GroupMember {
 		private final String id;
+
 		public GroupMember(String id) {
 			this.id = id;
 		}
+
 		public String getId() {
 			return id;
 		}
+
 		@Override
 		public int hashCode() {
+			// needed order to remove by new GroupMember(id)
 			final int prime = 31;
 			int result = 1;
 			result = prime * result + getOuterType().hashCode();
 			result = prime * result + ((id == null) ? 0 : id.hashCode());
 			return result;
 		}
+
 		@Override
 		public boolean equals(Object obj) {
+			// needed order to remove by new GroupMember(id)
 			if (this == obj)
 				return true;
 			if (obj == null)
@@ -232,6 +274,12 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 				return false;
 			return true;
 		}
+
+		@Override
+		public String toString() {
+			return "GroupMember [id=" + id + "]";
+		}
+
 		private GenericManagedContainerGroups getOuterType() {
 			return GenericManagedContainerGroups.this;
 		}

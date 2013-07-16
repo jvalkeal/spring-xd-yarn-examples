@@ -23,6 +23,7 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.springframework.util.Assert;
 import org.springframework.yarn.am.AbstractEventingAppmaster;
 import org.springframework.yarn.am.YarnAppmaster;
@@ -139,7 +140,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	/**
 	 * Called if completed container has failed. User
 	 * may override this method to process failed container,
-	 * i.e. making a request to re-allocate new container istead
+	 * i.e. making a request to re-allocate new container instead
 	 * of failing the application.
 	 *
 	 * @param containerId the container id
@@ -148,6 +149,14 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	protected boolean onContainerFailed(ContainerId containerId) {
 		return false;
 	}
+
+	protected void handleContainerFailed(ContainerId containerId) {
+		if (!onContainerFailed(containerId)) {
+			log.info("XXX removing failed member " + ConverterUtils.toString(containerId));
+			managedGroups.removeMember(ConverterUtils.toString(containerId));
+		}
+	}
+
 
 	/**
 	 * Returns state telling if application is considered

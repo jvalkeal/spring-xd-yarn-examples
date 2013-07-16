@@ -62,7 +62,7 @@ import org.springframework.yarn.thrift.ThriftTemplate;
 public class ComplexExampleTests extends AbstractYarnClusterTests {
 
 	@Test
-	@Timed(millis=240000)
+	@Timed(millis=300000)
 	public void testAppSubmission() throws Exception {
 		// submit and wait running state
 		ApplicationId applicationId = submitApplication();
@@ -87,11 +87,11 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		assertTrue("Ticktock request failed", doTickTockTimeLogPut(applicationId));
 
 		// wait a bit for spring-xd containers to log something
-		Thread.sleep(20000);
+		Thread.sleep(30000);
 
 		doSetContainerCountViaThrift(1, "default", rpcHost, rpcPort);
 		doSetContainerCountViaThrift(1, "xdgroup", rpcHost, rpcPort);
-		Thread.sleep(30000);
+		Thread.sleep(50000);
 
 		// long running app, kill it and check that state is KILLED
 		killApplication(applicationId);

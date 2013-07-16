@@ -70,6 +70,4 @@
 		<yarn:container-runner arguments="arguments"/>
 	</yarn:master>
 
-
-
 </beans>
