@@ -4,3 +4,6 @@ project('yarn-xd-examples-simple') {
   description = 'Spring XD Yarn Simple Example'
 }
 
+project('yarn-xd-examples-complex') {
+  description = 'Spring XD Yarn Complex Example'
+}

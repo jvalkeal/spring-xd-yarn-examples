@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:yarn="http://www.springframework.org/schema/yarn"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/yarn http://www.springframework.org/schema/yarn/spring-yarn.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<context:property-placeholder location="hadoop.properties" system-properties-mode="OVERRIDE"/>
+
+	<yarn:configuration>
+		fs.defaultFS=${hd.fs}
+		yarn.resourcemanager.address=${hd.rm}
+	</yarn:configuration>
+
+	<yarn:localresources local="${hd.fs}" remote="${hd.fs}">
+		<yarn:hdfs path="/xd/*.jar"/>
+	</yarn:localresources>
+
+	<yarn:environment include-system-env="false">
+		<yarn:classpath>
+			./*
+		</yarn:classpath>
+	</yarn:environment>
+
+	<util:properties id="arguments">
+		<prop key="container-count">1</prop>
+		<prop key="-Dxd.store">${xd.store}</prop>
+		<prop key="-Dxd.transport">${xd.transport}</prop>
+		<prop key="-Dxd.home">${xd.home}</prop>
+	</util:properties>
+
+	<yarn:client app-name="xd-complex">
+		<yarn:master-runner arguments="arguments" runner="org.springframework.yarn.examples.XdAppmasterRunner"/>
+	</yarn:client>
+
+</beans>

@@ -1,6 +1,6 @@
 rootProject.name = 'spring-xd-yarn-examples'
 
-include ':yarn:simple'
+include ':yarn:simple',':yarn:complex'
 
 rootProject.children.find {
 	if (it.name == 'yarn') {

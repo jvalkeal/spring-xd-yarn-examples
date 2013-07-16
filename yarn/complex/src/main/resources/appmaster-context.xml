@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:yarn="http://www.springframework.org/schema/yarn"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/yarn http://www.springframework.org/schema/yarn/spring-yarn.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
+
+	<context:annotation-config/>
+
+	<task:executor id="taskExecutor" pool-size="5"/>
+	<task:scheduler id="taskScheduler" pool-size="5"/>
+
+	<bean id="yarnEventPublisher" class="org.springframework.yarn.event.DefaultYarnEventPublisher"/>
+
+	<context:property-placeholder location="hadoop.properties" system-properties-mode="OVERRIDE"/>
+
+	<yarn:configuration>
+		fs.defaultFS=${syarn.hd.fs}
+		yarn.resourcemanager.address=${syarn.hd.rm}
+		yarn.resourcemanager.scheduler.address=${syarn.hd.scheduler}
+	</yarn:configuration>
+
+	<yarn:localresources>
+		<yarn:hdfs path="/xd/*.jar"/>
+	</yarn:localresources>
+
+	<yarn:environment>
+		<yarn:classpath>
+			./*
+		</yarn:classpath>
+		xd.home=${xd.home}
+	</yarn:environment>
+
+	<util:properties id="arguments">
+		<prop key="-Dxd.transport">${xd.transport}</prop>
+		<prop key="-Dxd.home">${xd.home}</prop>
+	</util:properties>
+
+	<bean id="yarnAmservice" class="org.springframework.yarn.thrift.hb.HeartbeatAppmasterService">
+		<property name="warnTime" value="5000" />
+		<property name="deadTime" value="10000" />
+	</bean>
+
+	<bean id="yarnClientAmservice" class="org.springframework.yarn.examples.XdAppmasterService"/>
+
+	<bean id="containerGroupResolver" class="org.springframework.yarn.examples.cg.GenericContainerGroupResolver">
+		<property name="configuration" ref="yarnConfiguration"/>
+		<property name="resolves">
+			<map>
+				<entry key="xdgroup">
+					<list>
+						<value>*</value>
+					</list>
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<bean class="org.springframework.yarn.examples.cg.GenericManagedContainerGroups">
+		<property name="resolver" ref="containerGroupResolver"/>
+	</bean>
+
+	<yarn:master class="org.springframework.yarn.examples.XdAppmaster">
+		<yarn:container-runner arguments="arguments"/>
+	</yarn:master>
+
+
+
+</beans>

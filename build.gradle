@@ -88,7 +88,7 @@ configure(yarnExampleProjectsWithCommon()) {
 	dependencies {
 		compile "org.springframework.xd:spring-xd-dirt:$springXdVersion"
 		compile "org.springframework.data:spring-yarn:$springDataVersion"
-		//compile "org.springframework:spring-webmvc:$springVersion"
+		compile "org.springframework.data:spring-yarn-thrift:$springDataVersion"
 		runtime "org.springframework.data:spring-data-hadoop:$springDataVersion"
 		runtime "org.springframework.data:spring-data-hadoop-core:$springDataVersion"
 		runtime "org.apache.hadoop:hadoop-yarn-api:$hadoopVersion"
