@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.httpclient.HttpClient;
@@ -40,7 +39,6 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.junit.Test;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.test.annotation.Timed;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.yarn.examples.gen.XdAdmin;
@@ -61,6 +59,12 @@ import org.springframework.yarn.thrift.ThriftTemplate;
 @MiniYarnCluster(nodes=2)
 public class ComplexExampleTests extends AbstractYarnClusterTests {
 
+	/** Pattern matching container's stdout files*/
+	private final String PAT_C_STDOUT = "/**/Container.stdout";
+
+	/** Pattern matching all log files*/
+	private final String PAT_ALL = "/**/*.std*";
+
 	@Test
 	@Timed(millis=300000)
 	public void testAppSubmission() throws Exception {
@@ -71,65 +75,44 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		assertNotNull(state);
 		assertTrue(state.equals(YarnApplicationState.RUNNING));
 
+		File baseDir = getYarnCluster().getYarnWorkDir();
 
+		// check registered rpc port
 		ApplicationReport applicationReport = yarnClient.getApplicationReport(applicationId);
 		String rpcHost = applicationReport.getHost();
 		int rpcPort = applicationReport.getRpcPort();
-
 		assertThat(rpcHost, notNullValue());
 		assertThat(rpcPort, greaterThan(0));
 
-		doSetContainerCountViaThrift(2, "default", rpcHost, rpcPort);
-		doSetContainerCountViaThrift(2, "xdgroup", rpcHost, rpcPort);
+		// we're starting for zero, launch and wait
+		setContainerCountViaThrift(1, "default", rpcHost, rpcPort);
+		setContainerCountViaThrift(1, "xdgroup", rpcHost, rpcPort);
+		int count = ApplicationTestUtils.waitResourcesMatchCount(baseDir, PAT_C_STDOUT, 2, true, null);
+		assertThat(count, is(2));
 
-		// wait and do ticktock put
-		Thread.sleep(40000);
+		// do ticktock request and wait logging message
 		assertTrue("Ticktock request failed", doTickTockTimeLogPut(applicationId));
+		count = ApplicationTestUtils.waitResourcesMatchCount(baseDir, PAT_C_STDOUT, 1, true, "LoggingHandler");
+		assertThat(count, is(1));
 
-		// wait a bit for spring-xd containers to log something
-		Thread.sleep(30000);
-
-		doSetContainerCountViaThrift(1, "default", rpcHost, rpcPort);
-		doSetContainerCountViaThrift(1, "xdgroup", rpcHost, rpcPort);
-		Thread.sleep(50000);
+		// resize and wait
+		setContainerCountViaThrift(2, "default", rpcHost, rpcPort);
+		setContainerCountViaThrift(2, "xdgroup", rpcHost, rpcPort);
+		count = ApplicationTestUtils.waitResourcesMatchCount(baseDir, PAT_C_STDOUT, 4, true, null);
+		assertThat(count, is(4));
 
 		// long running app, kill it and check that state is KILLED
 		killApplication(applicationId);
 		state = getState(applicationId);
-		assertTrue(state.equals(YarnApplicationState.KILLED));
+		assertThat(state, is(YarnApplicationState.KILLED));
 
-		// get log files
-		File workDir = getYarnCluster().getYarnWorkDir();
-		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-		String locationPattern = "file:" + workDir.getAbsolutePath() + "/**/*.std*";
-		Resource[] resources = resolver.getResources(locationPattern);
-
-		// appmaster and 1 container should make it 4 log files
+		// appmaster and 4 container should make it 10 log files
+		Resource[] resources = ApplicationTestUtils.matchResources(baseDir, PAT_ALL);
 		assertThat(resources, notNullValue());
 		assertThat(resources.length, is(10));
-
-		// do some checks for log file content
-		int found = 0;
-		for (Resource res : resources) {
-			File file = res.getFile();
-			if (file.getName().endsWith("stdout")) {
-				// there has to be some content in stdout file
-				assertThat(file.length(), greaterThan(0l));
-				if (file.getName().equals("Container.stdout")) {
-					Scanner scanner = new Scanner(file);
-					String content = scanner.useDelimiter("\\A").next();
-					scanner.close();
-					// this is what xd container should log
-					if (content.contains("LoggingHandler")) {
-						found++;
-					}
-				}
-			}
-		}
-		assertThat(found, is(1));
 	}
 
-	private void doSetContainerCountViaThrift(final int count, final String group, String host, int port) throws Exception {
+	private void setContainerCountViaThrift(final int count, final String group, String host, int port) throws Exception {
 		TTransport transport = new TFramedTransport(new TSocket(host, port, 2000));
 		transport.open();
 		TBinaryProtocol protocol = new TBinaryProtocol(transport);

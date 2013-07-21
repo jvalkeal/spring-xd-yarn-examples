@@ -64,6 +64,22 @@
 
 	<bean class="org.springframework.yarn.examples.cg.GenericManagedContainerGroups">
 		<property name="resolver" ref="containerGroupResolver"/>
+		<property name="groupHosts">
+			<map>
+				<entry key="xdgroup">
+					<list>
+						<value>*</value>
+					</list>
+				</entry>
+			</map>
+		</property>
+		<property name="groupSizes">
+			<map>
+				<entry key="xdgroup">
+					<value>0</value>
+				</entry>
+			</map>
+		</property>
 	</bean>
 
 	<yarn:master class="org.springframework.yarn.examples.XdAppmaster">

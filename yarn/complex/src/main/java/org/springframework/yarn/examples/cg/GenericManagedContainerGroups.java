@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -45,7 +46,7 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 	public final static String DEFAULT_GROUP = "default";
 
 	/** Name to Group mapping */
-	private Hashtable<String, Group> managedGroups = new Hashtable<String, Group>();
+	private final Hashtable<String, Group> managedGroups = new Hashtable<String, Group>();
 
 	/** Container to group resolver if exists */
 	private ContainerGroupResolver resolver;
@@ -65,6 +66,20 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 	 */
 	public void setResolver(ContainerGroupResolver resolver) {
 		this.resolver = resolver;
+	}
+
+	public void setGroupHosts(Map<String, List<String>> groupHosts) {
+		for (Entry<String, List<String>> entry : groupHosts.entrySet()) {
+			log.info("XXX groupHost " + entry.getKey() + " " + StringUtils.collectionToCommaDelimitedString(entry.getValue()));
+			getMayCreateGroup(entry.getKey()).setHosts(entry.getValue());
+		}
+	}
+
+	public void setGroupSizes(Map<String, Integer> groupSizes) {
+		for (Entry<String, Integer> entry : groupSizes.entrySet()) {
+			log.info("XXX groupSize " + entry.getKey() + " " + entry.getValue());
+			getMayCreateGroup(entry.getKey()).setProjectedSize(entry.getValue());
+		}
 	}
 
 	/**
@@ -161,6 +176,15 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 		return found;
 	}
 
+	private Group getMayCreateGroup(String name) {
+		Group group = managedGroups.get(name);
+		if (group == null) {
+			group = new Group(name);
+			managedGroups.put(name, group);
+		}
+		return group;
+	}
+
 	/**
 	 * Internal wrapper for handling null resolver.
 	 *
@@ -179,6 +203,7 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 		private Set<GroupMember> members = new HashSet<GenericManagedContainerGroups.GroupMember>();
 		private int projectedSize;
 		private boolean dirty = true;
+		private List<String> hosts;
 
 		public Group(String id) {
 			this.id = id;
@@ -221,6 +246,14 @@ public class GenericManagedContainerGroups implements ManagedContainerGroups {
 
 		public String getId() {
 			return id;
+		}
+
+		public void setHosts(List<String> hosts) {
+			this.hosts = hosts;
+		}
+
+		public List<String> getHosts() {
+			return hosts;
 		}
 
 		@Override
