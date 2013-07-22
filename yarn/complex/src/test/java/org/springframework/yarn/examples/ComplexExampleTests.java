@@ -26,8 +26,6 @@ import java.io.File;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
@@ -95,7 +93,6 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		assertThat(count, is(2));
 
 		// do ticktock request and wait logging message
-//		StreamDefinitionResource stream = doTickTockTimeLogPut(applicationId);
 		StreamDefinitionResource stream = createTickTockStream(baseUrl);
 		// for some reason stream name is null, bug in xd?
 		//assertThat(stream.getName(), is("ticktock"));
@@ -112,7 +109,6 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 
 		// long running app, kill it and check that state is KILLED
 		killApplication(applicationId);
-//		state = getState(applicationId);
 		state = waitState(applicationId, 30, TimeUnit.SECONDS, YarnApplicationState.KILLED);
 		assertThat(state, is(YarnApplicationState.KILLED));
 
@@ -138,15 +134,6 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 			}
 		});
 	}
-
-//	private StreamDefinitionResource doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
-//		String url = findXdBaseUrl(applicationId);
-//		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
-//		StreamOperations streamOperations = springXDOperations.streamOperations();
-//		streamOperations.destroyStream("ticktock");
-//		StreamDefinitionResource stream = streamOperations.createStream("ticktock", "time | log", true);
-//		return stream;
-//	}
 
 	private StreamDefinitionResource createTickTockStream(String url) throws Exception {
 		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
