@@ -62,8 +62,6 @@ import org.springframework.yarn.thrift.ThriftTemplate;
 @MiniYarnCluster(nodes=2)
 public class ComplexExampleTests extends AbstractYarnClusterTests {
 
-	private final static Log log = LogFactory.getLog(ComplexExampleTests.class);
-
 	/** Pattern matching container's stdout files*/
 	private final String PAT_C_STDOUT = "/**/Container.stdout";
 
@@ -80,14 +78,15 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		assertNotNull(state);
 		assertTrue(state.equals(YarnApplicationState.RUNNING));
 
-		File baseDir = getYarnCluster().getYarnWorkDir();
-
 		// check registered rpc port
 		ApplicationReport applicationReport = yarnClient.getApplicationReport(applicationId);
 		String rpcHost = applicationReport.getHost();
 		int rpcPort = applicationReport.getRpcPort();
 		assertThat(rpcHost, notNullValue());
 		assertThat(rpcPort, greaterThan(0));
+
+		File baseDir = getYarnCluster().getYarnWorkDir();
+		String baseUrl = findXdBaseUrl(applicationId);
 
 		// we're starting for zero, launch and wait
 		setContainerCountViaThrift(1, "default", rpcHost, rpcPort);
@@ -96,7 +95,8 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		assertThat(count, is(2));
 
 		// do ticktock request and wait logging message
-		StreamDefinitionResource stream = doTickTockTimeLogPut(applicationId);
+//		StreamDefinitionResource stream = doTickTockTimeLogPut(applicationId);
+		StreamDefinitionResource stream = createTickTockStream(baseUrl);
 		// for some reason stream name is null, bug in xd?
 		//assertThat(stream.getName(), is("ticktock"));
 		count = ApplicationTestUtils.waitResourcesMatchCount(baseDir, PAT_C_STDOUT, 1, true, "LoggingHandler");
@@ -108,9 +108,12 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		count = ApplicationTestUtils.waitResourcesMatchCount(baseDir, PAT_C_STDOUT, 4, true, null);
 		assertThat(count, is(4));
 
+		deleteTickTockStream(baseUrl);
+
 		// long running app, kill it and check that state is KILLED
 		killApplication(applicationId);
-		state = getState(applicationId);
+//		state = getState(applicationId);
+		state = waitState(applicationId, 30, TimeUnit.SECONDS, YarnApplicationState.KILLED);
 		assertThat(state, is(YarnApplicationState.KILLED));
 
 		// appmaster and 4 container should make it 10 log files
@@ -136,15 +139,33 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 		});
 	}
 
-	private StreamDefinitionResource doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
-		String url = findXdBaseUrl(applicationId);
-		log.info("XXXX url: " + url);
+//	private StreamDefinitionResource doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
+//		String url = findXdBaseUrl(applicationId);
+//		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
+//		StreamOperations streamOperations = springXDOperations.streamOperations();
+//		streamOperations.destroyStream("ticktock");
+//		StreamDefinitionResource stream = streamOperations.createStream("ticktock", "time | log", true);
+//		return stream;
+//	}
+
+	private StreamDefinitionResource createTickTockStream(String url) throws Exception {
 		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
 		StreamOperations streamOperations = springXDOperations.streamOperations();
-		streamOperations.destroyStream("ticktock");
+		try {
+			streamOperations.destroyStream("ticktock");
+		} catch (Exception e) {
+		}
 		StreamDefinitionResource stream = streamOperations.createStream("ticktock", "time | log", true);
-		log.info("XXXX stream: " + stream);
 		return stream;
+	}
+
+	private void deleteTickTockStream(String url) throws Exception {
+		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
+		StreamOperations streamOperations = springXDOperations.streamOperations();
+		try {
+			streamOperations.destroyStream("ticktock");
+		} catch (Exception e) {
+		}
 	}
 
 	private String findXdBaseUrl(ApplicationId applicationId) {

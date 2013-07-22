@@ -27,7 +27,6 @@
 	</yarn:environment>
 
 	<util:properties id="arguments">
-		<prop key="container-count">1</prop>
 		<prop key="-Dxd.store">${xd.store}</prop>
 		<prop key="-Dxd.transport">${xd.transport}</prop>
 		<prop key="-Dxd.home">${xd.home}</prop>

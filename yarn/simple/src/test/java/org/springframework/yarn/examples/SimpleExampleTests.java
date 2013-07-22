@@ -24,13 +24,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.junit.Test;
@@ -38,6 +35,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.test.annotation.Timed;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.xd.rest.client.SpringXDOperations;
+import org.springframework.xd.rest.client.StreamOperations;
+import org.springframework.xd.rest.client.domain.StreamDefinitionResource;
+import org.springframework.xd.rest.client.impl.SpringXDTemplate;
 import org.springframework.yarn.test.context.MiniYarnCluster;
 import org.springframework.yarn.test.context.YarnDelegatingSmartContextLoader;
 import org.springframework.yarn.test.junit.AbstractYarnClusterTests;
@@ -64,7 +65,8 @@ public class SimpleExampleTests extends AbstractYarnClusterTests {
 
 		// wait and do ticktock put
 		Thread.sleep(20000);
-		assertTrue("Ticktock request failed", doTickTockTimeLogPut(applicationId));
+		doTickTockTimeLogPut(applicationId);
+//		assertTrue("Ticktock request failed", doTickTockTimeLogPut(applicationId));
 
 		// wait a bit for spring-xd containers to log something
 		Thread.sleep(10000);
@@ -101,21 +103,18 @@ public class SimpleExampleTests extends AbstractYarnClusterTests {
 		}
 	}
 
-	private boolean doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
-		HttpClient httpclient = new HttpClient();
-		PutMethod put = new PutMethod(findTickTockUrl(applicationId));
-		StringRequestEntity entity = new StringRequestEntity("time | log", "text/plain", "UTF-8");
-		put.setRequestEntity(entity);
-		int executeMethod = httpclient.executeMethod(put);
-		return executeMethod == HttpStatus.SC_CREATED;
+	private StreamDefinitionResource doTickTockTimeLogPut(ApplicationId applicationId) throws Exception {
+		String url = findXdBaseUrl(applicationId);
+		SpringXDOperations springXDOperations = new SpringXDTemplate(URI.create(url));
+		StreamOperations streamOperations = springXDOperations.streamOperations();
+		streamOperations.destroyStream("ticktock");
+		StreamDefinitionResource stream = streamOperations.createStream("ticktock", "time | log", true);
+		return stream;
 	}
 
-	private String findTickTockUrl(ApplicationId applicationId) {
-		// returned track url is "<rm manager>:xxxx//<node>:xxxx"
-		// we need the last part
-		return "http://" +
-				getYarnClient().getApplicationReport(applicationId).getTrackingUrl().split("//")[1] +
-				"/streams/ticktock";
+	private String findXdBaseUrl(ApplicationId applicationId) {
+		// returned track url is "<rm manager>:xxxx//<node>:xxxx", we need the last part
+		return "http://" +	getYarnClient().getApplicationReport(applicationId).getTrackingUrl().split("//")[1];
 	}
 
 }
