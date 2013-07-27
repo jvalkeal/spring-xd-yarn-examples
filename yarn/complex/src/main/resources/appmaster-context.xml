@@ -45,11 +45,14 @@
 	<bean id="yarnAmservice" class="org.springframework.yarn.thrift.hb.HeartbeatAppmasterService">
 		<property name="warnTime" value="5000" />
 		<property name="deadTime" value="10000" />
+		<property name="thriftServerAutostart" value="true" />
 	</bean>
 
-	<bean id="yarnClientAmservice" class="org.springframework.yarn.examples.XdAppmasterService"/>
+	<bean id="yarnClientAmservice" class="org.springframework.yarn.examples.XdAppmasterService">
+		<property name="thriftServerAutostart" value="true" />
+	</bean>
 
-	<bean id="containerGroupResolver" class="org.springframework.yarn.examples.cg.GenericContainerGroupResolver">
+	<bean id="containerGroupResolver" class="org.springframework.yarn.examples.grid.yarn.GenericContainerGroupResolver">
 		<property name="configuration" ref="yarnConfiguration"/>
 		<property name="resolves">
 			<map>
@@ -62,7 +65,7 @@
 		</property>
 	</bean>
 
-	<bean class="org.springframework.yarn.examples.cg.GenericManagedContainerGroups">
+	<bean class="org.springframework.yarn.examples.grid.yarn.YarnManagedContainerGroups">
 		<property name="resolver" ref="containerGroupResolver"/>
 		<property name="groupHosts">
 			<map>

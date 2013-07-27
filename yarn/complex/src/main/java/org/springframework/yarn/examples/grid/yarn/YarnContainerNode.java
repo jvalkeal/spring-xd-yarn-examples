@@ -13,27 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.yarn.examples.cg;
-
-import java.util.List;
+package org.springframework.yarn.examples.grid.yarn;
 
 import org.apache.hadoop.yarn.api.records.Container;
+import org.springframework.yarn.examples.grid.ContainerNode;
 
 /**
- * Interface for resolving group names
- * based on {@link Container}.
+ * Yarn specific {@link ContainerNode} adding it
+ * to be aware of the running Yarn {@link Container}.
  *
  * @author Janne Valkealahti
  *
  */
-public interface ContainerGroupResolver {
+public interface YarnContainerNode extends ContainerNode {
 
 	/**
-	 * Resolve group names.
+	 * Gets a Yarn container.
 	 *
-	 * @param container the container
-	 * @return the list of matched group names
+	 * @return Yarn container
 	 */
-	List<String> resolveGroupNames(Container container);
+	Container getContainer();
 
 }

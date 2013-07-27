@@ -18,6 +18,7 @@
 		<property name="serverHost" value="localhost" />
 		<property name="timeout" value="10000" />
 		<property name="nodeId" value="${syarn.containerid}" />
+		<property name="thriftServerAutostart" value="true" />
 	</bean>
 
 	<!-- as bean reference order for DI to work -->

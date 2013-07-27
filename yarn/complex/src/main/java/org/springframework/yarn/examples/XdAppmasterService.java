@@ -32,7 +32,7 @@ import org.springframework.yarn.thrift.ThriftAppmasterService;
  * @author Janne Valkealahti
  *
  */
-public class XdAppmasterService extends ThriftAppmasterService<XdAdmin> implements XdAdmin.Iface {
+public class XdAppmasterService extends ThriftAppmasterService implements XdAdmin.Iface {
 
 	private final static Log log = LogFactory.getLog(XdAppmasterService.class);
 

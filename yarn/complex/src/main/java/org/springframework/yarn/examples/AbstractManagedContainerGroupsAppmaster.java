@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.yarn.examples.cg;
+package org.springframework.yarn.examples;
 
 import java.util.concurrent.ScheduledFuture;
 
@@ -30,6 +30,10 @@ import org.springframework.yarn.am.YarnAppmaster;
 import org.springframework.yarn.am.allocate.AbstractAllocator;
 import org.springframework.yarn.am.allocate.ContainerAllocateData;
 import org.springframework.yarn.am.allocate.ContainerAllocator;
+import org.springframework.yarn.examples.grid.ManagedContainerGroups;
+import org.springframework.yarn.examples.grid.yarn.DefaultYarnContainerNode;
+import org.springframework.yarn.examples.grid.yarn.YarnGroupsRebalanceData;
+import org.springframework.yarn.examples.grid.yarn.YarnManagedContainerGroups;
 
 /**
  * Implementation of application master which is utilizing concept
@@ -45,7 +49,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	private static final Log log = LogFactory.getLog(AbstractManagedContainerGroupsAppmaster.class);
 
 	/** Container <-> Groups tracker */
-	private ManagedContainerGroups managedGroups;
+	private YarnManagedContainerGroups managedGroups;
 
 	/** Current running task if any */
 	private volatile ScheduledFuture<?> runningTask;
@@ -63,7 +67,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	@Override
 	protected void onContainerAllocated(Container container) {
 		log.info("XXX onContainerAllocated: " + container.getId() + " host=" + container.getNodeId().getHost());
-		managedGroups.addContainer(container);
+		managedGroups.addContainerNode(new DefaultYarnContainerNode(container));
 		getMonitor().addContainer(container);
 		getLauncher().launchContainer(container, getCommands());
 	}
@@ -124,7 +128,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	 *
 	 * @param managedGroups the new managed groups
 	 */
-	public void setManagedGroups(ManagedContainerGroups managedGroups) {
+	public void setManagedGroups(YarnManagedContainerGroups managedGroups) {
 		this.managedGroups = managedGroups;
 	}
 
@@ -133,7 +137,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	 *
 	 * @return the managed groups
 	 */
-	public ManagedContainerGroups getManagedGroups() {
+	public YarnManagedContainerGroups getManagedGroups() {
 		return managedGroups;
 	}
 
@@ -153,7 +157,7 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 	protected void handleContainerFailed(ContainerId containerId) {
 		if (!onContainerFailed(containerId)) {
 			log.info("XXX removing failed member " + ConverterUtils.toString(containerId));
-			managedGroups.removeMember(ConverterUtils.toString(containerId));
+			managedGroups.removeContainerNode(ConverterUtils.toString(containerId));
 		}
 	}
 
@@ -178,13 +182,19 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 		@Override
 		public void run() {
 			ContainerAllocator allocator = getAllocator();
-			for (ContainerId cid : managedGroups.getReleasedContainers()) {
+//			for (ContainerId cid : managedGroups.getReleasedContainers()) {
+//				log.info("XXX release cid=" + cid);
+//				allocator.releaseContainer(cid);
+//			}
+//			ContainerAllocateData containerAllocateData = managedGroups.getContainerAllocateData();
+//			log.info("XXX allocadata=" + containerAllocateData);
+//			allocator.allocateContainers(containerAllocateData);
+			YarnGroupsRebalanceData rebalanceData = managedGroups.getGroupsRebalanceData();
+			for (ContainerId cid : rebalanceData.getContainers()) {
 				log.info("XXX release cid=" + cid);
 				allocator.releaseContainer(cid);
 			}
-			ContainerAllocateData containerAllocateData = managedGroups.getContainerAllocateData();
-			log.info("XXX allocadata=" + containerAllocateData);
-			allocator.allocateContainers(containerAllocateData);
+			allocator.allocateContainers(rebalanceData.getAllocateData());
 		}
 
 	}

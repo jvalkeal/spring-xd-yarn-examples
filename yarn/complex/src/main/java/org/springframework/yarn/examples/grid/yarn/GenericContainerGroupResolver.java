@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.yarn.examples.cg;
+package org.springframework.yarn.examples.grid.yarn;
 
 import java.util.ArrayList;
 import java.util.Arrays;

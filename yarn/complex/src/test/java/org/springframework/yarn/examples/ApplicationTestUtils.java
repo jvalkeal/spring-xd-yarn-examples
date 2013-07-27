@@ -33,6 +33,9 @@ import org.springframework.util.StringUtils;
  */
 public abstract class ApplicationTestUtils {
 
+	private final static long DEFAULT_TIMEOUT = 120;
+	private final static long DEFAULT_POLL = 2000;
+
 	/**
 	 * Match resources.
 	 *
@@ -60,7 +63,7 @@ public abstract class ApplicationTestUtils {
 	 * @see #waitResourcesMatchCount(File, String, int, long, TimeUnit, long, boolean, String)
 	 */
 	public static int waitResourcesMatchCount(File baseDir, String pattern, int count) throws IOException {
-		return waitResourcesMatchCount(baseDir, pattern, count, 60, TimeUnit.SECONDS, 2000, false, null);
+		return waitResourcesMatchCount(baseDir, pattern, count, DEFAULT_TIMEOUT, TimeUnit.SECONDS, DEFAULT_POLL, false, null);
 	}
 
 	/**
@@ -77,7 +80,7 @@ public abstract class ApplicationTestUtils {
 	 */
 	public static int waitResourcesMatchCount(File baseDir, String pattern, int count,
 			boolean needsContent, String contentContains) throws IOException {
-		return waitResourcesMatchCount(baseDir, pattern, count, 60, TimeUnit.SECONDS, 2000, needsContent, contentContains);
+		return waitResourcesMatchCount(baseDir, pattern, count, DEFAULT_TIMEOUT, TimeUnit.SECONDS, DEFAULT_POLL, needsContent, contentContains);
 	}
 
 	/**

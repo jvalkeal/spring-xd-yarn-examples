@@ -15,11 +15,18 @@
  */
 package org.springframework.yarn.examples;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -28,13 +35,13 @@ import org.springframework.yarn.YarnSystemConstants;
 import org.springframework.yarn.am.AppmasterService;
 import org.springframework.yarn.am.ContainerLauncherInterceptor;
 import org.springframework.yarn.am.container.AbstractLauncher;
-import org.springframework.yarn.examples.cg.AbstractManagedContainerGroupsAppmaster;
-import org.springframework.yarn.examples.cg.GenericManagedContainerGroups;
-import org.springframework.yarn.examples.cg.ManagedContainerGroups;
+import org.springframework.yarn.examples.grid.yarn.YarnManagedContainerGroups;
 import org.springframework.yarn.thrift.hb.HeartbeatAppmasterService;
 import org.springframework.yarn.thrift.hb.HeartbeatMasterClientAdapter;
 import org.springframework.yarn.thrift.hb.HeartbeatNode;
 import org.springframework.yarn.thrift.hb.HeartbeatNode.NodeState;
+import org.springframework.yarn.thrift.hb.gen.CommandMessageType;
+import org.springframework.yarn.thrift.hb.gen.HeartbeatCommandMessage;
 
 /**
  * Application Master for XD system running on Hadoop.
@@ -52,9 +59,14 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 
 	private final static Log log = LogFactory.getLog(XdAppmaster.class);
 
+	private String sessionId;
+
 	/** Container <-> Groups tracker */
 	@Autowired
-	private ManagedContainerGroups managedGroups;
+	private YarnManagedContainerGroups managedGroups;
+
+	@Autowired
+	private HeartbeatAppmasterService heartbeatAppmasterService;
 
 	/**
 	 * Sets a new container count this application
@@ -63,7 +75,7 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 	 * @param count the new container count
 	 */
 	public void setRunningXdContainerCount(int count) {
-		setRunningXdContainerCount(count, GenericManagedContainerGroups.DEFAULT_GROUP);
+		setRunningXdContainerCount(count, "default");
 	}
 
 	/**
@@ -75,7 +87,7 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 	 */
 	public void setRunningXdContainerCount(int count, String group) {
 		log.info("XXX incoming " + group + " " + count);
-		getManagedGroups().setProjectedSize(group, count);
+		getManagedGroups().setProjectedGroupSize(group, count);
 	}
 
 	/**
@@ -88,6 +100,13 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 
 	@Override
 	protected void onInit() throws Exception {
+
+		sessionId = UUID.randomUUID().toString();
+
+		for (Entry<String, String> entry : System.getenv().entrySet()) {
+			log.info("XXXenv: " + entry.getKey() + " " + entry.getValue());
+		}
+
 		// for now no ref for appmaster in xml,
 		// set managedGroups here
 		setManagedGroups(managedGroups);
@@ -96,8 +115,9 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 		if(getLauncher() instanceof AbstractLauncher) {
 			((AbstractLauncher)getLauncher()).addInterceptor(this);
 		}
-		((HeartbeatAppmasterService)getAppmasterService())
-		.addHeartbeatMasterClientListener(new HbMasterClient());
+		((HeartbeatAppmasterService) getAppmasterService()).addHeartbeatMasterClientListener(new HbMasterClient());
+//		((HeartbeatAppmasterService) getAppmasterService()).setSessionId(sessionId);
+		heartbeatAppmasterService.setSessionId(sessionId);
 	}
 
 	@Override
@@ -117,6 +137,20 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 			String xdGroup = getManagedGroups().findGroupNameByMember(ConverterUtils.toString(context.getContainerId()));
 			env.put("syarn.cg.group", xdGroup != null ? xdGroup : "");
 			context.setEnvironment(env);
+
+			// testing
+			try {
+				Credentials credentials = new Credentials();
+				credentials.addSecretKey(new Text(YarnSystemConstants.SYARN_SEC_SESSIONID), sessionId.getBytes());
+				DataOutputBuffer dob = new DataOutputBuffer();
+				credentials.writeTokenStorageToStream(dob);
+				ByteBuffer containerToken  = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+				context.setContainerTokens(containerToken);
+			} catch (IOException e) {
+				log.error("XXX error setContainerTokens", e);
+			}
+
+
 			return context;
 		} else {
 			return context;
@@ -136,6 +170,11 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 		@Override
 		public void nodeUp(HeartbeatNode node, NodeState state) {
 			log.info("XXX nodeUp nodeId=" + node.getId());
+			HeartbeatCommandMessage m = new HeartbeatCommandMessage();
+			m.setCommandMessageType(CommandMessageType.GENERIC);
+			m.setJsonData("fakedata");
+			heartbeatAppmasterService.sendCommand(m);
+//			((HeartbeatAppmasterService) getAppmasterService()).sendCommand(m);
 		}
 
 		@Override

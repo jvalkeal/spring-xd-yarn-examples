@@ -15,8 +15,15 @@
  */
 package org.springframework.yarn.examples;
 
+import java.io.File;
+import java.util.Map.Entry;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -25,6 +32,7 @@ import org.springframework.xd.dirt.launcher.ContainerLauncher;
 import org.springframework.xd.dirt.server.options.AbstractOptions;
 import org.springframework.xd.dirt.server.options.ContainerOptions;
 import org.springframework.xd.dirt.server.options.Transport;
+import org.springframework.yarn.YarnSystemConstants;
 import org.springframework.yarn.container.AbstractYarnContainer;
 import org.springframework.yarn.thrift.hb.HeartbeatAppmasterServiceClient;
 import org.springframework.yarn.thrift.hb.gen.NodeInfo;
@@ -64,6 +72,9 @@ public class XdContainer extends AbstractYarnContainer implements ApplicationCon
 		log.info("XdContainer launched id=" + container.getId() + " jvm=" + container.getJvmName());
 
 		HeartbeatAppmasterServiceClient serviceClient = context.getBean(HeartbeatAppmasterServiceClient.class);
+		Credentials credentials = getCredentials();
+		String sessionId = new String(credentials.getSecretKey(new Text(YarnSystemConstants.SYARN_SEC_SESSIONID)));
+		serviceClient.setSessionId(sessionId);
 
 		// set empty node info order to enable heartbeats
 		serviceClient.setNodeInfo(new NodeInfo());
