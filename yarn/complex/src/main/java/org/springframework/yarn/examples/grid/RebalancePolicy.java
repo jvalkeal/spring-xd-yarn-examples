@@ -35,9 +35,9 @@ public enum RebalancePolicy {
 
 	/**
 	 * Rebalance logic where group balancing is
-	 * strick. This logic means that group sizes
+	 * Strict. This logic means that group sizes
 	 * are kept in exact numbers set by the user.
 	 */
-	STRICK
+	STRICT
 
 }
