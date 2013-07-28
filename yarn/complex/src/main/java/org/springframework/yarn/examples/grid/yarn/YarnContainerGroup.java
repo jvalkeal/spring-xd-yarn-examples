@@ -15,9 +15,9 @@
  */
 package org.springframework.yarn.examples.grid.yarn;
 
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.yarn.examples.grid.ContainerGroup;
 
@@ -31,8 +31,11 @@ import org.springframework.yarn.examples.grid.ContainerGroup;
  */
 public class YarnContainerGroup implements ContainerGroup {
 
+	/** Group identifier, usually just name */
 	private final String id;
-	private Set<YarnContainerGroupMember> members = new HashSet<YarnContainerGroupMember>();
+
+	private Hashtable<String, YarnContainerNode> members = new Hashtable<String, YarnContainerNode>();
+
 	private int projectedSize;
 	private boolean dirty = true;
 	private List<String> hosts;
@@ -51,6 +54,10 @@ public class YarnContainerGroup implements ContainerGroup {
 		return id;
 	}
 
+	public YarnContainerNode removeMember(String id) {
+		return members.remove(id);
+	}
+
 	/**
 	 * Gets the size.
 	 *
@@ -65,8 +72,16 @@ public class YarnContainerGroup implements ContainerGroup {
 	 *
 	 * @return the members
 	 */
-	public Set<YarnContainerGroupMember> getMembers() {
-		return members;
+	public Collection<YarnContainerNode> getMembers() {
+		return members.values();
+	}
+
+	public boolean hasMember(String id) {
+		return members.containsKey(id);
+	}
+
+	public YarnContainerNode getMember(String id) {
+		return members.get(id);
 	}
 
 	/**
@@ -74,8 +89,8 @@ public class YarnContainerGroup implements ContainerGroup {
 	 *
 	 * @param member the member
 	 */
-	public void addMember(YarnContainerGroupMember member) {
-		members.add(member);
+	public void addMember(YarnContainerNode member) {
+		members.put(member.getId(), member);
 	}
 
 	/**

@@ -27,31 +27,79 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.yarn.am.allocate.ContainerAllocateData;
+import org.springframework.yarn.examples.grid.CompositeContainerGridListener;
 import org.springframework.yarn.examples.grid.ContainerGridListener;
 import org.springframework.yarn.examples.grid.ManagedContainerGroups;
 import org.springframework.yarn.examples.grid.RebalancePolicy;
 
-public class YarnManagedContainerGroups implements ManagedContainerGroups<YarnContainerNode, YarnContainerGroup, YarnGroupsRebalanceData> {
+/**
+ * Yarn specific implementation of {@link ManagedContainerGroups}.
+ *
+ * @author Janne Valkealahti
+ *
+ */
+public class YarnManagedContainerGroups implements
+		ManagedContainerGroups<YarnContainerNode, YarnContainerGroup, YarnGroupsRebalanceData> {
 
 	private final static Log log = LogFactory.getLog(YarnManagedContainerGroups.class);
 
+	/** We always have one reservation for default group name */
 	public final static String DEFAULT_GROUP = "default";
 
-	private final Hashtable<String, YarnContainerGroup> managedGroups = new Hashtable<String, YarnContainerGroup>();
+	/** Structure for group id <-> group */
+	private final Hashtable<String, YarnContainerGroup> managedGroups =
+			new Hashtable<String, YarnContainerGroup>();
 
 	/** Container to group resolver if exists */
 	private ContainerGroupResolver resolver;
 
+	/** Listener dispatcher for container grid events */
+	private CompositeContainerGridListener containerGridListener =
+			new CompositeContainerGridListener();
+
+	/** Current rebalance policy */
+	private RebalancePolicy rebalancePolicy = RebalancePolicy.NONE;
+
+	/**
+	 * Instantiates a new yarn managed container groups.
+	 */
+	public YarnManagedContainerGroups() {
+		this(false);
+	}
+
+	/**
+	 * Instantiates a new yarn managed container groups.
+	 *
+	 * @param registerDefaultGroup the register default group
+	 */
+	public YarnManagedContainerGroups(boolean registerDefaultGroup) {
+		this(registerDefaultGroup, DEFAULT_GROUP);
+	}
+
+	/**
+	 * Instantiates a new yarn managed container groups.
+	 *
+	 * @param registerDefaultGroup the register default group
+	 */
+	public YarnManagedContainerGroups(boolean registerDefaultGroup, String groupName) {
+		if (registerDefaultGroup) {
+			managedGroups.put(groupName, new YarnContainerGroup(groupName));
+		}
+	}
+
 	@Override
 	public void addGroup(YarnContainerGroup group) {
-		// not yet supported
+		Assert.notNull(group, "Group must not be null");
+		Assert.notNull(group.getId(), "Group id must not be null");
+		managedGroups.put(group.getId(), group);
 	}
 
 	@Override
 	public void removeGroup(String id) {
-		// not yet supported
+		managedGroups.remove(id);
 	}
 
 	@Override
@@ -65,64 +113,101 @@ public class YarnManagedContainerGroups implements ManagedContainerGroups<YarnCo
 	}
 
 	@Override
+	public YarnContainerGroup getGroupByMember(String id) {
+		YarnContainerGroup g = null;
+		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
+			if (entry.getValue().hasMember(id)) {
+				g = entry.getValue();
+				break;
+			}
+		}
+		return g;
+	}
+
+	@Override
 	public Collection<YarnContainerNode> getContainerNodes() {
-		return null;
+		ArrayList<YarnContainerNode> ret = new ArrayList<YarnContainerNode>();
+		for (YarnContainerGroup g : managedGroups.values()) {
+			ret.addAll(g.getMembers());
+		}
+		return ret;
 	}
 
 	@Override
 	public YarnContainerNode getContainerNode(String id) {
-		return null;
+		YarnContainerNode n = null;
+		for (YarnContainerGroup g : managedGroups.values()) {
+			if ((n = g.getMember(id)) != null) {
+				break;
+			}
+		}
+		return n;
 	}
 
 	@Override
 	public void addContainerNode(YarnContainerNode node) {
-
 		Container container = node.getContainer();
+		Assert.notNull(container, "Yarn Container must be set");
 
 		List<String> resolvesGroups = resolveGroupNamesInternal(container);
-		log.info("XXX matching: " + StringUtils.collectionToCommaDelimitedString(resolvesGroups));
+
+		if (log.isDebugEnabled()) {
+			log.debug("Matched node=" + node + " to groups " + StringUtils.collectionToCommaDelimitedString(resolvesGroups));
+		}
 
 		for (String name : resolvesGroups) {
 			if (!managedGroups.containsKey(name)) {
 				managedGroups.put(name, new YarnContainerGroup(name));
-				log.info("XXX creating group: " + name);
+				if (log.isDebugEnabled()) {
+					log.debug("Creating group " + name);
+				}
 			}
 		}
 
 		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
 			YarnContainerGroup g = managedGroups.get(entry.getKey());
 			if(g != null && !g.isFull()) {
-				g.addMember(new YarnContainerGroupMember(ConverterUtils.toString(container.getId())));
-				log.info("XXX added " + ConverterUtils.toString(container.getId()) + " to " + g.getId());
+				g.addMember(new DefaultYarnContainerNode(container));
+				if (log.isDebugEnabled()) {
+					log.debug("Added " + ConverterUtils.toString(container.getId()) + " to " + g.getId());
+				}
 				break;
 			}
 		}
+
+		containerGridListener.containerNodeAdded(node);
 
 	}
 
 	@Override
 	public void removeContainerNode(String id) {
+		YarnContainerNode node = null;
 		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
 			YarnContainerGroup group = entry.getValue();
-			YarnContainerGroupMember m = new YarnContainerGroupMember(id);
-			log.info("XXX trying to remove member " + m + " from group " + group);
-			if (group.getMembers().remove(m)) {
-				log.info("XXX removed member " + m);
+			if ((node = group.removeMember(id)) != null) {
+				if (log.isDebugEnabled()) {
+					log.debug("Removed member " + node);
+				}
 				break;
 			}
 		}
-
+		if (node != null) {
+			containerGridListener.containerNodeRemoved(node);
+		}
 	}
 
 	@Override
-	public void addListener(ContainerGridListener listener) {
+	public void addContainerGridListener(ContainerGridListener listener) {
+		containerGridListener.register(listener);
 	}
 
 	@Override
 	public boolean setProjectedGroupSize(String id, int size) {
 		if (!managedGroups.containsKey(id)) {
 			managedGroups.put(id, new YarnContainerGroup(id));
-			log.info("XXX creating group: " + id);
+			if (log.isDebugEnabled()) {
+				log.debug("Creating group: " + id);
+			}
 		}
 
 		YarnContainerGroup g = managedGroups.get(id);
@@ -134,6 +219,7 @@ public class YarnManagedContainerGroups implements ManagedContainerGroups<YarnCo
 
 	@Override
 	public void setRebalancePolicy(RebalancePolicy policy) {
+		this.rebalancePolicy = policy;
 	}
 
 	@Override
@@ -157,7 +243,7 @@ public class YarnManagedContainerGroups implements ManagedContainerGroups<YarnCo
 			for (int i = remove; i>0; i--) {
 				String id = group.getMembers().iterator().next().getId();
 				ids.add(ConverterUtils.toContainerId(id));
-				group.getMembers().remove(new YarnContainerGroupMember(id));
+				group.removeMember(id);
 			}
 		}
 		data.setContainers(ids);
@@ -165,33 +251,41 @@ public class YarnManagedContainerGroups implements ManagedContainerGroups<YarnCo
 		return data;
 	}
 
+	/**
+	 * Sets the Container group resolver.
+	 *
+	 * @param resolver the new resolver
+	 */
+	public void setResolver(ContainerGroupResolver resolver) {
+		this.resolver = resolver;
+	}
+
+	/**
+	 * Sets the group hosts.
+	 *
+	 * @param groupHosts the group hosts
+	 */
 	public void setGroupHosts(Map<String, List<String>> groupHosts) {
 		for (Entry<String, List<String>> entry : groupHosts.entrySet()) {
-			log.info("XXX groupHost " + entry.getKey() + " " + StringUtils.collectionToCommaDelimitedString(entry.getValue()));
+			if (log.isDebugEnabled()) {
+				log.debug("setGroupHosts " + entry.getKey() + " " + StringUtils.collectionToCommaDelimitedString(entry.getValue()));
+			}
 			getMayCreateGroup(entry.getKey()).setHosts(entry.getValue());
 		}
 	}
 
+	/**
+	 * Sets the group sizes.
+	 *
+	 * @param groupSizes the group sizes
+	 */
 	public void setGroupSizes(Map<String, Integer> groupSizes) {
 		for (Entry<String, Integer> entry : groupSizes.entrySet()) {
-			log.info("XXX groupSize " + entry.getKey() + " " + entry.getValue());
+			if (log.isDebugEnabled()) {
+				log.debug("setGroupSizes " + entry.getKey() + " " + entry.getValue());
+			}
 			getMayCreateGroup(entry.getKey()).setProjectedSize(entry.getValue());
 		}
-	}
-
-	public String findGroupNameByMember(String id) {
-		String found = null;
-		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
-			if (entry.getValue().getMembers().contains(new YarnContainerGroupMember(id))) {
-				found = entry.getKey();
-				break;
-			}
-		}
-		return found;
-	}
-
-	public void setResolver(ContainerGroupResolver resolver) {
-		this.resolver = resolver;
 	}
 
 	private YarnContainerGroup getMayCreateGroup(String name) {

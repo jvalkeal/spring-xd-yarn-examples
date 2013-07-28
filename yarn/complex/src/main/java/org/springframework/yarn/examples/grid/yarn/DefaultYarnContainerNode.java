@@ -56,4 +56,9 @@ public class DefaultYarnContainerNode implements YarnContainerNode {
 		this.container = container;
 	}
 
+	@Override
+	public String toString() {
+		return "DefaultYarnContainerNode [container=" + container + "]";
+	}
+
 }

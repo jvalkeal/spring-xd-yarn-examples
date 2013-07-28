@@ -35,6 +35,8 @@ import org.springframework.yarn.YarnSystemConstants;
 import org.springframework.yarn.am.AppmasterService;
 import org.springframework.yarn.am.ContainerLauncherInterceptor;
 import org.springframework.yarn.am.container.AbstractLauncher;
+import org.springframework.yarn.examples.grid.ContainerGridListener;
+import org.springframework.yarn.examples.grid.ContainerNode;
 import org.springframework.yarn.examples.grid.yarn.YarnManagedContainerGroups;
 import org.springframework.yarn.thrift.hb.HeartbeatAppmasterService;
 import org.springframework.yarn.thrift.hb.HeartbeatMasterClientAdapter;
@@ -111,6 +113,17 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 		// set managedGroups here
 		setManagedGroups(managedGroups);
 
+		managedGroups.addContainerGridListener(new ContainerGridListener() {
+			@Override
+			public void containerNodeRemoved(ContainerNode node) {
+				log.info("XXX containerNodeRemoved: " + node);
+			}
+			@Override
+			public void containerNodeAdded(ContainerNode node) {
+				log.info("XXX containerNodeAdded: " + node);
+			}
+		});
+
 		super.onInit();
 		if(getLauncher() instanceof AbstractLauncher) {
 			((AbstractLauncher)getLauncher()).addInterceptor(this);
@@ -134,7 +147,8 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 			env.put(YarnSystemConstants.AMSERVICE_PORT, Integer.toString(port));
 			env.put(YarnSystemConstants.AMSERVICE_HOST, address);
 			env.put(YarnSystemConstants.SYARN_CONTAINER_ID, ConverterUtils.toString(context.getContainerId()));
-			String xdGroup = getManagedGroups().findGroupNameByMember(ConverterUtils.toString(context.getContainerId()));
+//			String xdGroup = getManagedGroups().findGroupNameByMember(ConverterUtils.toString(context.getContainerId()));
+			String xdGroup = getManagedGroups().getGroupByMember(ConverterUtils.toString(context.getContainerId())).getId();
 			env.put("syarn.cg.group", xdGroup != null ? xdGroup : "");
 			context.setEnvironment(env);
 

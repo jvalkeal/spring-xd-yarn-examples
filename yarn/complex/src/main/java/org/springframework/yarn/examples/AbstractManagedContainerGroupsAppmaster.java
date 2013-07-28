@@ -28,7 +28,6 @@ import org.springframework.util.Assert;
 import org.springframework.yarn.am.AbstractEventingAppmaster;
 import org.springframework.yarn.am.YarnAppmaster;
 import org.springframework.yarn.am.allocate.AbstractAllocator;
-import org.springframework.yarn.am.allocate.ContainerAllocateData;
 import org.springframework.yarn.am.allocate.ContainerAllocator;
 import org.springframework.yarn.examples.grid.ManagedContainerGroups;
 import org.springframework.yarn.examples.grid.yarn.DefaultYarnContainerNode;

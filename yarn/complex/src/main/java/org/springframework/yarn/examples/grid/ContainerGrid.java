@@ -76,10 +76,10 @@ public interface ContainerGrid<CN extends ContainerNode> {
 	void removeContainerNode(String id);
 
 	/**
-	 * Adds a listener to be notified of grid events.
+	 * Adds a listener to be notified of Grid Container Node events.
 	 *
 	 * @param listener Container grid listener
 	 */
-	void addListener(ContainerGridListener listener);
+	void addContainerGridListener(ContainerGridListener listener);
 
 }

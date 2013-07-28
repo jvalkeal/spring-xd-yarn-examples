@@ -63,4 +63,12 @@ public interface ContainerGroups<CN extends ContainerNode, CG extends ContainerG
 	 */
 	Collection<CG> getGroups();
 
+	/**
+	 * Gets a Container Group where Container node belongs to.
+	 *
+	 * @param id Container Node id
+	 * @return Container Group or NULL if not match
+	 */
+	CG getGroupByMember(String id);
+
 }

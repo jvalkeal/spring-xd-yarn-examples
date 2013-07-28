@@ -15,27 +15,20 @@
  */
 package org.springframework.yarn.examples.grid;
 
-
 /**
- * Listener for grid Container Node events.
+ * Listener for grid Container Group events.
  *
  * @author Janne Valkealahti
  *
  */
-public interface ContainerGridListener {
+public interface ContainerGroupsListener {
 
-	/**
-	 * Invoked when container node is added.
-	 *
-	 * @param node the {@link ContainerNode}
-	 */
-	void containerNodeAdded(ContainerNode node);
+	void groupAdded(ContainerGroup group);
 
-	/**
-	 * Invoked when container node is removed.
-	 *
-	 * @param node the {@link ContainerNode}
-	 */
-	void containerNodeRemoved(ContainerNode node);
+	void groupRemoved(ContainerGroup group);
+
+	void groupMemberAdded(ContainerGroup group, ContainerNode node);
+
+	void groupMemberRemoved(ContainerGroup group, ContainerNode node);
 
 }
