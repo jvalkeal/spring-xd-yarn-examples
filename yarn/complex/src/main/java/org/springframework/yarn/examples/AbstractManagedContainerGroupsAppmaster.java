@@ -181,13 +181,6 @@ public abstract class AbstractManagedContainerGroupsAppmaster extends AbstractEv
 		@Override
 		public void run() {
 			ContainerAllocator allocator = getAllocator();
-//			for (ContainerId cid : managedGroups.getReleasedContainers()) {
-//				log.info("XXX release cid=" + cid);
-//				allocator.releaseContainer(cid);
-//			}
-//			ContainerAllocateData containerAllocateData = managedGroups.getContainerAllocateData();
-//			log.info("XXX allocadata=" + containerAllocateData);
-//			allocator.allocateContainers(containerAllocateData);
 			YarnGroupsRebalanceData rebalanceData = managedGroups.getGroupsRebalanceData();
 			for (ContainerId cid : rebalanceData.getContainers()) {
 				log.info("XXX release cid=" + cid);

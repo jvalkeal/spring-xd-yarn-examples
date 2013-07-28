@@ -28,7 +28,7 @@ import org.springframework.yarn.examples.grid.ContainerNode;
 public interface YarnContainerNode extends ContainerNode {
 
 	/**
-	 * Gets a Yarn container.
+	 * Gets a Yarn {@link Container}.
 	 *
 	 * @return Yarn container
 	 */

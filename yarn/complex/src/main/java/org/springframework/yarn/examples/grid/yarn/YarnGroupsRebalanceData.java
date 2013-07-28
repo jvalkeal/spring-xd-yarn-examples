@@ -32,16 +32,16 @@ import org.springframework.yarn.examples.grid.GroupsRebalanceData;
 public interface YarnGroupsRebalanceData extends GroupsRebalanceData {
 
 	/**
-	 * Gets the allocate data.
+	 * Gets the container {@link ContainerAllocateData}
 	 *
-	 * @return the allocate data
+	 * @return Container allocate data
 	 */
 	ContainerAllocateData getAllocateData();
 
 	/**
-	 * Gets the containers.
+	 * Gets a list of {@link ContainerId}s.
 	 *
-	 * @return the containers
+	 * @return List of container id's
 	 */
 	List<ContainerId> getContainers();
 

@@ -41,6 +41,11 @@ import org.springframework.yarn.examples.grid.ContainerGroupsListener;
  */
 public class YarnManagedContainerGroupsTests {
 
+	private final static String CID1 = "container_1375001068632_0001_01_000001";
+	private final static String CID2 = "container_1375001068632_0001_01_000002";
+	private final static String HOST1 = "hostname1";
+	private final static String HOST2 = "hostname2";
+
 	@Test
 	public void testInitialEmptyState() {
 		YarnManagedContainerGroups managedGroups = createDefault();
@@ -72,14 +77,14 @@ public class YarnManagedContainerGroupsTests {
 		managedGroups.addGroup(new YarnContainerGroup("foo"));
 		assertThat(listener.groupAdded, is(1));
 
-		Container container = mockContainer();
+		Container container = mockContainer1();
 		DefaultYarnContainerNode node = new DefaultYarnContainerNode(container);
 		managedGroups.addContainerNode(node);
 
 		Collection<YarnContainerNode> nodes = managedGroups.getContainerNodes();
 		assertThat(nodes.size(), is(1));
 
-		YarnContainerGroup group = managedGroups.getGroupByMember("container_1375001068632_0001_01_000002");
+		YarnContainerGroup group = managedGroups.getGroupByMember(CID1);
 		assertThat(group.getId(), is("default"));
 
 	}
@@ -91,19 +96,43 @@ public class YarnManagedContainerGroupsTests {
 		TestContainerGridListener listener = new TestContainerGridListener();
 		managedGroups.addContainerGridListener(listener);
 
-		Container container = mockContainer();
-		DefaultYarnContainerNode node = new DefaultYarnContainerNode(container);
-		managedGroups.addContainerNode(node);
+		Container container1 = mockContainer1();
+		DefaultYarnContainerNode node1 = new DefaultYarnContainerNode(container1);
+		managedGroups.addContainerNode(node1);
 
-		assertThat(listener.added, is(1));
+		Container container2 = mockContainer2();
+		DefaultYarnContainerNode node2 = new DefaultYarnContainerNode(container2);
+		managedGroups.addContainerNode(node2);
+
+		assertThat(listener.added, is(2));
 	}
 
-	private Container mockContainer() {
+	/**
+	 * Mocks a yarn container with hostname myhost1 and container id {@link #CID1}
+	 *
+	 * @return the mocked Yarn Container
+	 */
+	private Container mockContainer1() {
 		Container container = Records.newRecord(Container.class);
 		NodeId nodeId = Records.newRecord(NodeId.class);
-		nodeId.setHost("myhost");
+		nodeId.setHost(HOST1);
 		container.setNodeId(nodeId);
-		ContainerId containerId = ConverterUtils.toContainerId("container_1375001068632_0001_01_000002");
+		ContainerId containerId = ConverterUtils.toContainerId(CID1);
+		container.setId(containerId);
+		return container;
+	}
+
+	/**
+	 * Mocks a yarn container with hostname myhost2 and container id {@link #CID2}
+	 *
+	 * @return the mocked Yarn Container
+	 */
+	private Container mockContainer2() {
+		Container container = Records.newRecord(Container.class);
+		NodeId nodeId = Records.newRecord(NodeId.class);
+		nodeId.setHost(HOST2);
+		container.setNodeId(nodeId);
+		ContainerId containerId = ConverterUtils.toContainerId(CID2);
 		container.setId(containerId);
 		return container;
 	}
@@ -135,6 +164,9 @@ public class YarnManagedContainerGroupsTests {
 		return managedGroups;
 	}
 
+	/**
+	 * Test implementation of {@link ContainerGridListener}.
+	 */
 	private static class TestContainerGridListener implements ContainerGridListener<YarnContainerNode> {
 		public int added;
 		public int removed;
@@ -148,6 +180,9 @@ public class YarnManagedContainerGroupsTests {
 		}
 	}
 
+	/**
+	 * Test implementation of {@link ContainerGroupsListener}.
+	 */
 	private static class TestContainerGroupsListener implements ContainerGroupsListener<YarnContainerGroup, YarnContainerNode> {
 		public int groupAdded;
 		public int groupRemoved;

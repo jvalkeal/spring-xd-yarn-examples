@@ -24,6 +24,10 @@ package org.springframework.yarn.examples.grid;
  */
 public enum RebalancePolicy {
 
+	// concept not yet supported
+	// should this be enum or class/interface
+	// order to extend???
+
 	/**
 	 * No defined rebalance logic.
 	 */
