@@ -37,6 +37,7 @@ import org.springframework.yarn.am.ContainerLauncherInterceptor;
 import org.springframework.yarn.am.container.AbstractLauncher;
 import org.springframework.yarn.examples.grid.ContainerGridListener;
 import org.springframework.yarn.examples.grid.ContainerNode;
+import org.springframework.yarn.examples.grid.yarn.YarnContainerNode;
 import org.springframework.yarn.examples.grid.yarn.YarnManagedContainerGroups;
 import org.springframework.yarn.thrift.hb.HeartbeatAppmasterService;
 import org.springframework.yarn.thrift.hb.HeartbeatMasterClientAdapter;
@@ -113,13 +114,13 @@ public class XdAppmaster extends AbstractManagedContainerGroupsAppmaster
 		// set managedGroups here
 		setManagedGroups(managedGroups);
 
-		managedGroups.addContainerGridListener(new ContainerGridListener() {
+		managedGroups.addContainerGridListener(new ContainerGridListener<YarnContainerNode>() {
 			@Override
-			public void containerNodeRemoved(ContainerNode node) {
+			public void containerNodeRemoved(YarnContainerNode node) {
 				log.info("XXX containerNodeRemoved: " + node);
 			}
 			@Override
-			public void containerNodeAdded(ContainerNode node) {
+			public void containerNodeAdded(YarnContainerNode node) {
 				log.info("XXX containerNodeAdded: " + node);
 			}
 		});

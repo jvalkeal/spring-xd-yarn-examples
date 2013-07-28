@@ -21,21 +21,22 @@ package org.springframework.yarn.examples.grid;
  *
  * @author Janne Valkealahti
  *
+ * @param <CN> the type of {@link ContainerNode}
  */
-public interface ContainerGridListener {
+public interface ContainerGridListener<CN extends ContainerNode> {
 
 	/**
 	 * Invoked when container node is added.
 	 *
 	 * @param node the {@link ContainerNode}
 	 */
-	void containerNodeAdded(ContainerNode node);
+	void containerNodeAdded(CN node);
 
 	/**
 	 * Invoked when container node is removed.
 	 *
 	 * @param node the {@link ContainerNode}
 	 */
-	void containerNodeRemoved(ContainerNode node);
+	void containerNodeRemoved(CN node);
 
 }

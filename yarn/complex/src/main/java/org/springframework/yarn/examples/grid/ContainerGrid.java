@@ -80,6 +80,6 @@ public interface ContainerGrid<CN extends ContainerNode> {
 	 *
 	 * @param listener Container grid listener
 	 */
-	void addContainerGridListener(ContainerGridListener listener);
+	void addContainerGridListener(ContainerGridListener<CN> listener);
 
 }

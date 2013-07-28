@@ -71,4 +71,11 @@ public interface ContainerGroups<CN extends ContainerNode, CG extends ContainerG
 	 */
 	CG getGroupByMember(String id);
 
+	/**
+	 * Adds a listener to be notified of Container Group events.
+	 *
+	 * @param listener Container group listener
+	 */
+	void addContainerGroupsListener(ContainerGroupsListener<CG,CN> listener);
+
 }

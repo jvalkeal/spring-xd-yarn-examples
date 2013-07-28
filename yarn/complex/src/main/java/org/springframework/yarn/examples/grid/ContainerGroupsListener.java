@@ -20,15 +20,39 @@ package org.springframework.yarn.examples.grid;
  *
  * @author Janne Valkealahti
  *
+ * @param <CG> the type of {@link ContainerGroup}
+ * @param <CN> the type of {@link ContainerNode}
  */
-public interface ContainerGroupsListener {
+public interface ContainerGroupsListener<CG extends ContainerGroup, CN extends ContainerNode> {
 
-	void groupAdded(ContainerGroup group);
+	/**
+	 * Invoked when group is added.
+	 *
+	 * @param group the {@link ContainerGroup}
+	 */
+	void groupAdded(CG group);
 
-	void groupRemoved(ContainerGroup group);
+	/**
+	 * Invoked when group is removed.
+	 *
+	 * @param group the {@link ContainerGroup}
+	 */
+	void groupRemoved(CG group);
 
-	void groupMemberAdded(ContainerGroup group, ContainerNode node);
+	/**
+	 * Invoked when member is added into a group.
+	 *
+	 * @param group the {@link ContainerGroup}
+	 * @param node the {@link ContainerNode}
+	 */
+	void groupMemberAdded(CG group, CN node);
 
-	void groupMemberRemoved(ContainerGroup group, ContainerNode node);
+	/**
+	 * Invoked when member is removed from a group.
+	 *
+	 * @param group the {@link ContainerGroup}
+	 * @param node the {@link ContainerNode}
+	 */
+	void groupMemberRemoved(CG group, CN node);
 
 }

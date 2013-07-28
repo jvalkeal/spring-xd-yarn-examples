@@ -31,7 +31,9 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.yarn.am.allocate.ContainerAllocateData;
 import org.springframework.yarn.examples.grid.CompositeContainerGridListener;
+import org.springframework.yarn.examples.grid.CompositeContainerGroupsListener;
 import org.springframework.yarn.examples.grid.ContainerGridListener;
+import org.springframework.yarn.examples.grid.ContainerGroupsListener;
 import org.springframework.yarn.examples.grid.ManagedContainerGroups;
 import org.springframework.yarn.examples.grid.RebalancePolicy;
 
@@ -57,8 +59,12 @@ public class YarnManagedContainerGroups implements
 	private ContainerGroupResolver resolver;
 
 	/** Listener dispatcher for container grid events */
-	private CompositeContainerGridListener containerGridListener =
-			new CompositeContainerGridListener();
+	private CompositeContainerGridListener<YarnContainerNode> containerGridListener =
+			new CompositeContainerGridListener<YarnContainerNode>();
+
+	/** Listener dispatcher for container group events */
+	private CompositeContainerGroupsListener<YarnContainerGroup, YarnContainerNode> containerGroupsListener =
+			new CompositeContainerGroupsListener<YarnContainerGroup, YarnContainerNode>();
 
 	/** Current rebalance policy */
 	private RebalancePolicy rebalancePolicy = RebalancePolicy.NONE;
@@ -95,11 +101,15 @@ public class YarnManagedContainerGroups implements
 		Assert.notNull(group, "Group must not be null");
 		Assert.notNull(group.getId(), "Group id must not be null");
 		managedGroups.put(group.getId(), group);
+		containerGroupsListener.groupAdded(group);
 	}
 
 	@Override
 	public void removeGroup(String id) {
-		managedGroups.remove(id);
+		YarnContainerGroup group = managedGroups.remove(id);
+		if (group != null) {
+			containerGroupsListener.groupRemoved(group);
+		}
 	}
 
 	@Override
@@ -197,8 +207,13 @@ public class YarnManagedContainerGroups implements
 	}
 
 	@Override
-	public void addContainerGridListener(ContainerGridListener listener) {
+	public void addContainerGridListener(ContainerGridListener<YarnContainerNode> listener) {
 		containerGridListener.register(listener);
+	}
+
+	@Override
+	public void addContainerGroupsListener(ContainerGroupsListener<YarnContainerGroup, YarnContainerNode> listener) {
+		containerGroupsListener.register(listener);
 	}
 
 	@Override
@@ -219,6 +234,7 @@ public class YarnManagedContainerGroups implements
 
 	@Override
 	public void setRebalancePolicy(RebalancePolicy policy) {
+		// not yet supported
 		this.rebalancePolicy = policy;
 	}
 

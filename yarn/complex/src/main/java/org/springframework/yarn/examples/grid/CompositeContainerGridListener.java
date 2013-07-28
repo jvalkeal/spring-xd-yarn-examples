@@ -24,23 +24,22 @@ import org.springframework.yarn.listener.AbstractCompositeListener;
  *
  * @author Janne Valkealahti
  *
+ * @param <CN> the type of {@link ContainerNode}
  */
-public class CompositeContainerGridListener extends AbstractCompositeListener<ContainerGridListener> implements
-		ContainerGridListener {
+public class CompositeContainerGridListener<CN extends ContainerNode> extends
+		AbstractCompositeListener<ContainerGridListener<CN>> implements ContainerGridListener<CN> {
 
 	@Override
-	public void containerNodeAdded(ContainerNode node) {
-		for (Iterator<ContainerGridListener> iterator = getListeners().reverse(); iterator.hasNext();) {
-			ContainerGridListener listener = iterator.next();
-			listener.containerNodeAdded(node);
+	public void containerNodeAdded(CN node) {
+		for (Iterator<ContainerGridListener<CN>> iterator = getListeners().reverse(); iterator.hasNext();) {
+			iterator.next().containerNodeAdded(node);
 		}
 	}
 
 	@Override
-	public void containerNodeRemoved(ContainerNode node) {
-		for (Iterator<ContainerGridListener> iterator = getListeners().reverse(); iterator.hasNext();) {
-			ContainerGridListener listener = iterator.next();
-			listener.containerNodeRemoved(node);
+	public void containerNodeRemoved(CN node) {
+		for (Iterator<ContainerGridListener<CN>> iterator = getListeners().reverse(); iterator.hasNext();) {
+			iterator.next().containerNodeRemoved(node);
 		}
 	}
 
