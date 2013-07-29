@@ -16,18 +16,25 @@
 package org.springframework.yarn.examples.grid.yarn;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.net.DNSToSwitchMapping;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
 import org.junit.Test;
 import org.springframework.yarn.examples.grid.ContainerGridListener;
@@ -43,9 +50,13 @@ public class YarnManagedContainerGroupsTests {
 
 	private final static String CID1 = "container_1375001068632_0001_01_000001";
 	private final static String CID2 = "container_1375001068632_0001_01_000002";
+	private final static String CID3 = "container_1375001068632_0001_01_000003";
 	private final static String HOST1 = "hostname1";
 	private final static String HOST2 = "hostname2";
+	private final static String HOST3 = "hostname3";
+	private final static String RACK3 = "rackname3";
 	private final static String EXTRA_GROUP = "foogroup";
+	private final static String RACK_GROUP = "rackgroup";
 
 	@Test
 	public void testInitialStateWithDefaults() {
@@ -81,6 +92,29 @@ public class YarnManagedContainerGroupsTests {
 
 		YarnContainerGroup group = managedGroups.getGroupByMember(CID1);
 		assertThat(group.getId(), is(YarnManagedContainerGroups.DEFAULT_GROUP));
+
+	}
+
+	@Test
+	public void testAddNodes() {
+		YarnManagedContainerGroups managedGroups = createYmcgResolveAllToTwoGroups();
+
+		Container container1 = mockContainer1();
+		DefaultYarnContainerNode node1 = new DefaultYarnContainerNode(container1);
+		managedGroups.addContainerNode(node1);
+
+		Container container2 = mockContainer2();
+		DefaultYarnContainerNode node2 = new DefaultYarnContainerNode(container2);
+		managedGroups.addContainerNode(node2);
+
+		Collection<YarnContainerNode> nodes = managedGroups.getContainerNodes();
+		assertThat(nodes.size(), is(2));
+
+		YarnContainerGroup group1 = managedGroups.getGroupByMember(CID1);
+		assertThat(group1.getId(), is(YarnManagedContainerGroups.DEFAULT_GROUP));
+
+		YarnContainerGroup group2 = managedGroups.getGroupByMember(CID2);
+		assertThat(group2.getId(), is(EXTRA_GROUP));
 
 	}
 
@@ -169,8 +203,36 @@ public class YarnManagedContainerGroupsTests {
 		assertThat(listener.lastGroup.getId(), is(YarnManagedContainerGroups.DEFAULT_FALLBACK_GROUP));
 	}
 
+	@Test
+	public void testRackResolving() throws Exception {
+		YarnManagedContainerGroups managedGroups = createYmcgResolveToDefaultWithRack();
+
+		Container container1 = mockContainer1();
+		DefaultYarnContainerNode node1 = new DefaultYarnContainerNode(container1);
+		Container container2 = mockContainer2();
+		DefaultYarnContainerNode node2 = new DefaultYarnContainerNode(container2);
+		Container container3 = mockContainer3();
+		DefaultYarnContainerNode node3 = new DefaultYarnContainerNode(container3);
+
+		managedGroups.addContainerNode(node1);
+		managedGroups.addContainerNode(node2);
+		managedGroups.addContainerNode(node3);
+
+		YarnContainerGroup group = managedGroups.getGroupByMember(CID1);
+		assertThat(group, notNullValue());
+		assertThat(group.getId(), is(YarnManagedContainerGroups.DEFAULT_GROUP));
+
+		group = managedGroups.getGroupByMember(CID2);
+		assertThat(group, notNullValue());
+		assertThat(group.getId(), is(YarnManagedContainerGroups.DEFAULT_GROUP));
+
+		group = managedGroups.getGroupByMember(CID3);
+		assertThat(group, notNullValue());
+		assertThat(group.getId(), is(RACK_GROUP));
+	}
+
 	/**
-	 * Mocks a yarn container with hostname myhost1 and container id {@link #CID1}
+	 * Mocks a yarn container with hostname hostname1 and container id {@link #CID1}
 	 *
 	 * @return the mocked Yarn Container
 	 */
@@ -185,7 +247,7 @@ public class YarnManagedContainerGroupsTests {
 	}
 
 	/**
-	 * Mocks a yarn container with hostname myhost2 and container id {@link #CID2}
+	 * Mocks a yarn container with hostname hostname2 and container id {@link #CID2}
 	 *
 	 * @return the mocked Yarn Container
 	 */
@@ -195,6 +257,21 @@ public class YarnManagedContainerGroupsTests {
 		nodeId.setHost(HOST2);
 		container.setNodeId(nodeId);
 		ContainerId containerId = ConverterUtils.toContainerId(CID2);
+		container.setId(containerId);
+		return container;
+	}
+
+	/**
+	 * Mocks a yarn container with hostname hostname3 and container id {@link #CID3}
+	 *
+	 * @return the mocked Yarn Container
+	 */
+	private Container mockContainer3() {
+		Container container = Records.newRecord(Container.class);
+		NodeId nodeId = Records.newRecord(NodeId.class);
+		nodeId.setHost(HOST3);
+		container.setNodeId(nodeId);
+		ContainerId containerId = ConverterUtils.toContainerId(CID3);
 		container.setId(containerId);
 		return container;
 	}
@@ -242,6 +319,41 @@ public class YarnManagedContainerGroupsTests {
 		Map<String, Integer> groupSizes = new Hashtable<String, Integer>();
 		groupSizes.put(YarnManagedContainerGroups.DEFAULT_GROUP, 1);
 		groupSizes.put(EXTRA_GROUP, 1);
+		managedGroups.setGroupSizes(groupSizes);
+		return managedGroups;
+	}
+
+	private YarnManagedContainerGroups createYmcgResolveToDefaultWithRack() throws Exception {
+
+		Configuration configuration = new Configuration();
+		configuration.setClass(CommonConfigurationKeysPublic.NET_TOPOLOGY_NODE_SWITCH_MAPPING_IMPL_KEY,
+				TestRackResolver.class, DNSToSwitchMapping.class);
+
+		// For some weird reason hadoop's rack resolver init
+		// is static so we need to tweak field via reflection
+		// order to re-init it.
+		// TODO: this may break other tests if rack resolver is initialized after this test
+		Field initCalledField = RackResolver.class.getDeclaredField("initCalled");
+		initCalledField.setAccessible(true);
+		initCalledField.setBoolean(null, false);
+		RackResolver.init(configuration);
+
+		GenericContainerGroupResolver groupResolver = new GenericContainerGroupResolver();
+		groupResolver.setConfiguration(configuration);
+		groupResolver.setResolveRacks(true);
+		Map<String, List<String>> resolves = new Hashtable<String, List<String>>();
+		resolves.put(YarnManagedContainerGroups.DEFAULT_GROUP, Arrays.asList(new String[]{"*"}));
+		resolves.put(RACK_GROUP, Arrays.asList(new String[]{"/"+RACK3}));
+		groupResolver.setResolves(resolves);
+		groupResolver.afterPropertiesSet();
+
+		YarnManagedContainerGroups managedGroups = new YarnManagedContainerGroups(true);
+		managedGroups.setResolver(groupResolver);
+
+		// default group size to 1
+		Map<String, Integer> groupSizes = new Hashtable<String, Integer>();
+		groupSizes.put(YarnManagedContainerGroups.DEFAULT_GROUP, 2);
+		groupSizes.put(RACK_GROUP, 1);
 		managedGroups.setGroupSizes(groupSizes);
 		return managedGroups;
 	}
@@ -301,6 +413,29 @@ public class YarnManagedContainerGroupsTests {
 			groupMemberRemoved = 0;
 			lastGroup = null;
 			lastNode = null;
+		}
+	}
+
+	/**
+	 * Simple hadoop test rack resolver.
+	 * Resolves:
+	 * HOST3 -> /RACK3
+	 * all other -> /default-rack
+	 */
+	private static class TestRackResolver implements DNSToSwitchMapping {
+		@Override
+		public List<String> resolve(List<String> names) {
+			List<String> ret = new ArrayList<String>();
+			if (names.isEmpty()) {
+				return ret;
+			}
+			if (names.get(0).equals(HOST3)) {
+				ret.add("/" + RACK3);
+			}
+			if (ret.isEmpty()) {
+				ret.add("/default-rack");
+			}
+			return ret;
 		}
 	}
 

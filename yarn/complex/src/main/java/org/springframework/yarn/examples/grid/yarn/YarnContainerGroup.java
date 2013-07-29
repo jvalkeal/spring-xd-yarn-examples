@@ -40,7 +40,7 @@ public class YarnContainerGroup implements ContainerGroup {
 	/** Current projected size of this group */
 	private int projectedSize;
 
-	/**  */
+	/** List of hosts this group requests allocation */
 	private List<String> hosts;
 
 	/**  */
@@ -55,6 +55,12 @@ public class YarnContainerGroup implements ContainerGroup {
 		this.id = id;
 	}
 
+	/**
+	 * Instantiates a new yarn container group.
+	 *
+	 * @param id the id
+	 * @param projectedSize the projected size
+	 */
 	public YarnContainerGroup(String id, int projectedSize) {
 		this.id = id;
 		this.projectedSize = projectedSize;
@@ -65,6 +71,12 @@ public class YarnContainerGroup implements ContainerGroup {
 		return id;
 	}
 
+	/**
+	 * Removes the member.
+	 *
+	 * @param id the Container identifier
+	 * @return Removed container node or <code>NULL</code> if key didn't have mapping
+	 */
 	public YarnContainerNode removeMember(String id) {
 		return members.remove(id);
 	}
@@ -87,6 +99,12 @@ public class YarnContainerGroup implements ContainerGroup {
 		return members.values();
 	}
 
+	/**
+	 * Tests if a specific identifier is mapped for members.
+	 *
+	 * @param id the Container identifier
+	 * @return true, if successful
+	 */
 	public boolean hasMember(String id) {
 		return members.containsKey(id);
 	}
@@ -156,14 +174,19 @@ public class YarnContainerGroup implements ContainerGroup {
 		}
 	}
 
+	/**
+	 * Sets the allocation hosts.
+	 *
+	 * @param hosts the new allocation hosts
+	 */
 	public void setHosts(List<String> hosts) {
 		this.hosts = hosts;
 	}
 
 	/**
-	 * Gets the hosts.
+	 * Gets the allocation hosts.
 	 *
-	 * @return the hosts
+	 * @return the allocation hosts
 	 */
 	public List<String> getHosts() {
 		return hosts;
