@@ -119,6 +119,8 @@ public class YarnManagedContainerGroupsTests {
 	public void testContainerGroupsListener() {
 		YarnManagedContainerGroups managedGroups = createYmcgWithDefaults();
 
+		YarnContainerGroup group1 = new YarnContainerGroup(EXTRA_GROUP);
+
 		Container container1 = mockContainer1();
 		DefaultYarnContainerNode node1 = new DefaultYarnContainerNode(container1);
 
@@ -127,14 +129,14 @@ public class YarnManagedContainerGroupsTests {
 
 		TestContainerGroupsListener listener = new TestContainerGroupsListener();
 		managedGroups.addContainerGroupsListener(listener);
-		managedGroups.addGroup(new YarnContainerGroup(EXTRA_GROUP));
+		managedGroups.addGroup(group1);
 
 		assertThat(listener.groupAdded, is(1));
 		assertThat(listener.groupRemoved, is(0));
 		assertThat(listener.groupMemberAdded, is(0));
 		assertThat(listener.groupMemberRemoved, is(0));
 
-		managedGroups.removeGroup("foo");
+		managedGroups.removeGroup(EXTRA_GROUP);
 		assertThat(listener.groupAdded, is(1));
 		assertThat(listener.groupRemoved, is(1));
 		assertThat(listener.groupMemberAdded, is(0));
@@ -291,6 +293,14 @@ public class YarnManagedContainerGroupsTests {
 			groupMemberRemoved++;
 			lastGroup = group;
 			lastNode = node;
+		}
+		public void reset() {
+			groupAdded = 0;
+			groupRemoved = 0;
+			groupMemberAdded = 0;
+			groupMemberRemoved = 0;
+			lastGroup = null;
+			lastNode = null;
 		}
 	}
 
