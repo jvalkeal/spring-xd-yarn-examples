@@ -34,11 +34,17 @@ public class YarnContainerGroup implements ContainerGroup {
 	/** Group identifier, usually just name */
 	private final String id;
 
+	/** Mapping container id <-> container node */
 	private Hashtable<String, YarnContainerNode> members = new Hashtable<String, YarnContainerNode>();
 
+	/** Current projected size of this group */
 	private int projectedSize;
-	private boolean dirty = true;
+
+	/**  */
 	private List<String> hosts;
+
+	/**  */
+	private boolean dirty = true;
 
 	/**
 	 * Instantiates a new yarn container group.
@@ -47,6 +53,11 @@ public class YarnContainerGroup implements ContainerGroup {
 	 */
 	public YarnContainerGroup(String id) {
 		this.id = id;
+	}
+
+	public YarnContainerGroup(String id, int projectedSize) {
+		this.id = id;
+		this.projectedSize = projectedSize;
 	}
 
 	@Override
@@ -138,7 +149,11 @@ public class YarnContainerGroup implements ContainerGroup {
 	 * @return true, if is full
 	 */
 	public boolean isFull() {
-		return !(getSize() < projectedSize);
+		if (projectedSize < 0) {
+			return false;
+		} else {
+			return !(getSize() < projectedSize);
+		}
 	}
 
 	public void setHosts(List<String> hosts) {

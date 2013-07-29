@@ -45,37 +45,32 @@ public class YarnManagedContainerGroupsTests {
 	private final static String CID2 = "container_1375001068632_0001_01_000002";
 	private final static String HOST1 = "hostname1";
 	private final static String HOST2 = "hostname2";
+	private final static String EXTRA_GROUP = "foogroup";
 
 	@Test
-	public void testInitialEmptyState() {
-		YarnManagedContainerGroups managedGroups = createDefault();
+	public void testInitialStateWithDefaults() {
+		YarnManagedContainerGroups managedGroups = createYmcgWithDefaults();
 
 		Collection<YarnContainerGroup> groups = managedGroups.getGroups();
-		assertThat(groups.size(), is(0));
+		assertThat(groups.size(), is(1));
 
 		Collection<YarnContainerNode> nodes = managedGroups.getContainerNodes();
 		assertThat(nodes.size(), is(0));
-
 	}
 
 	@Test
 	public void testAddGroup() {
-		YarnManagedContainerGroups managedGroups = createDefault();
+		YarnManagedContainerGroups managedGroups = createYmcgWithDefaults();
 
-		managedGroups.addGroup(new YarnContainerGroup("foo"));
+		managedGroups.addGroup(new YarnContainerGroup(EXTRA_GROUP));
 
 		Collection<YarnContainerGroup> groups = managedGroups.getGroups();
-		assertThat(groups.size(), is(1));
+		assertThat(groups.size(), is(2));
 	}
 
 	@Test
 	public void testAddNode() {
-		YarnManagedContainerGroups managedGroups = createWithOneGroup();
-
-		TestContainerGroupsListener listener = new TestContainerGroupsListener();
-		managedGroups.addContainerGroupsListener(listener);
-		managedGroups.addGroup(new YarnContainerGroup("foo"));
-		assertThat(listener.groupAdded, is(1));
+		YarnManagedContainerGroups managedGroups = createYmcgResolveAllToDefaultGroup();
 
 		Container container = mockContainer1();
 		DefaultYarnContainerNode node = new DefaultYarnContainerNode(container);
@@ -85,13 +80,13 @@ public class YarnManagedContainerGroupsTests {
 		assertThat(nodes.size(), is(1));
 
 		YarnContainerGroup group = managedGroups.getGroupByMember(CID1);
-		assertThat(group.getId(), is("default"));
+		assertThat(group.getId(), is(YarnManagedContainerGroups.DEFAULT_GROUP));
 
 	}
 
 	@Test
 	public void testContainerGridListener() {
-		YarnManagedContainerGroups managedGroups = createWithOneGroup();
+		YarnManagedContainerGroups managedGroups = createYmcgWithDefaults();
 
 		TestContainerGridListener listener = new TestContainerGridListener();
 		managedGroups.addContainerGridListener(listener);
@@ -104,7 +99,72 @@ public class YarnManagedContainerGroupsTests {
 		DefaultYarnContainerNode node2 = new DefaultYarnContainerNode(container2);
 		managedGroups.addContainerNode(node2);
 
-		assertThat(listener.added, is(2));
+		assertThat(listener.containerNodeAdded, is(2));
+		assertThat(listener.containerNodeRemoved, is(0));
+
+		managedGroups.removeContainerNode(CID1);
+		assertThat(listener.containerNodeAdded, is(2));
+		assertThat(listener.containerNodeRemoved, is(1));
+		managedGroups.removeContainerNode(CID2);
+		assertThat(listener.containerNodeAdded, is(2));
+		assertThat(listener.containerNodeRemoved, is(2));
+
+		managedGroups.removeContainerNode(CID1);
+		managedGroups.removeContainerNode(CID2);
+		assertThat(listener.containerNodeAdded, is(2));
+		assertThat(listener.containerNodeRemoved, is(2));
+	}
+
+	@Test
+	public void testContainerGroupsListener() {
+		YarnManagedContainerGroups managedGroups = createYmcgWithDefaults();
+
+		Container container1 = mockContainer1();
+		DefaultYarnContainerNode node1 = new DefaultYarnContainerNode(container1);
+
+		Container container2 = mockContainer2();
+		DefaultYarnContainerNode node2 = new DefaultYarnContainerNode(container2);
+
+		TestContainerGroupsListener listener = new TestContainerGroupsListener();
+		managedGroups.addContainerGroupsListener(listener);
+		managedGroups.addGroup(new YarnContainerGroup(EXTRA_GROUP));
+
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(0));
+		assertThat(listener.groupMemberAdded, is(0));
+		assertThat(listener.groupMemberRemoved, is(0));
+
+		managedGroups.removeGroup("foo");
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(1));
+		assertThat(listener.groupMemberAdded, is(0));
+		assertThat(listener.groupMemberRemoved, is(0));
+
+		managedGroups.addContainerNode(node1);
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(1));
+		assertThat(listener.groupMemberAdded, is(1));
+		assertThat(listener.groupMemberRemoved, is(0));
+
+		managedGroups.addContainerNode(node2);
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(1));
+		assertThat(listener.groupMemberAdded, is(2));
+		assertThat(listener.groupMemberRemoved, is(0));
+
+		managedGroups.removeContainerNode(CID1);
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(1));
+		assertThat(listener.groupMemberAdded, is(2));
+		assertThat(listener.groupMemberRemoved, is(1));
+		assertThat(listener.lastGroup.getId(), is(YarnManagedContainerGroups.DEFAULT_FALLBACK_GROUP));
+
+		managedGroups.removeContainerNode(CID2);
+		assertThat(listener.groupAdded, is(1));
+		assertThat(listener.groupRemoved, is(1));
+		assertThat(listener.groupMemberAdded, is(2));
+		assertThat(listener.groupMemberRemoved, is(2));
+		assertThat(listener.lastGroup.getId(), is(YarnManagedContainerGroups.DEFAULT_FALLBACK_GROUP));
 	}
 
 	/**
@@ -137,7 +197,7 @@ public class YarnManagedContainerGroupsTests {
 		return container;
 	}
 
-	private YarnManagedContainerGroups createDefault() {
+	private YarnManagedContainerGroups createYmcgWithDefaults() {
 		GenericContainerGroupResolver groupResolver = new GenericContainerGroupResolver();
 		Map<String, List<String>> resolves = new Hashtable<String, List<String>>();
 		groupResolver.setResolves(resolves);
@@ -146,12 +206,12 @@ public class YarnManagedContainerGroupsTests {
 		return managedGroups;
 	}
 
-	private YarnManagedContainerGroups createWithOneGroup() {
+	private YarnManagedContainerGroups createYmcgResolveAllToDefaultGroup() {
 		GenericContainerGroupResolver groupResolver = new GenericContainerGroupResolver();
 
 		// resolving default to all
 		Map<String, List<String>> resolves = new Hashtable<String, List<String>>();
-		resolves.put("default", Arrays.asList(new String[]{"*"}));
+		resolves.put(YarnManagedContainerGroups.DEFAULT_GROUP, Arrays.asList(new String[]{"*"}));
 		groupResolver.setResolves(resolves);
 
 		YarnManagedContainerGroups managedGroups = new YarnManagedContainerGroups(true);
@@ -159,7 +219,27 @@ public class YarnManagedContainerGroupsTests {
 
 		// default group size to 1
 		Map<String, Integer> groupSizes = new Hashtable<String, Integer>();
-		groupSizes.put("default", 1);
+		groupSizes.put(YarnManagedContainerGroups.DEFAULT_GROUP, 1);
+		managedGroups.setGroupSizes(groupSizes);
+		return managedGroups;
+	}
+
+	private YarnManagedContainerGroups createYmcgResolveAllToTwoGroups() {
+		GenericContainerGroupResolver groupResolver = new GenericContainerGroupResolver();
+
+		// resolving default to all
+		Map<String, List<String>> resolves = new Hashtable<String, List<String>>();
+		resolves.put(YarnManagedContainerGroups.DEFAULT_GROUP, Arrays.asList(new String[]{"*"}));
+		resolves.put(EXTRA_GROUP, Arrays.asList(new String[]{"*"}));
+		groupResolver.setResolves(resolves);
+
+		YarnManagedContainerGroups managedGroups = new YarnManagedContainerGroups(true);
+		managedGroups.setResolver(groupResolver);
+
+		// default group size to 1
+		Map<String, Integer> groupSizes = new Hashtable<String, Integer>();
+		groupSizes.put(YarnManagedContainerGroups.DEFAULT_GROUP, 1);
+		groupSizes.put(EXTRA_GROUP, 1);
 		managedGroups.setGroupSizes(groupSizes);
 		return managedGroups;
 	}
@@ -168,15 +248,15 @@ public class YarnManagedContainerGroupsTests {
 	 * Test implementation of {@link ContainerGridListener}.
 	 */
 	private static class TestContainerGridListener implements ContainerGridListener<YarnContainerNode> {
-		public int added;
-		public int removed;
+		public int containerNodeAdded;
+		public int containerNodeRemoved;
 		@Override
 		public void containerNodeAdded(YarnContainerNode node) {
-			added++;
+			containerNodeAdded++;
 		}
 		@Override
 		public void containerNodeRemoved(YarnContainerNode node) {
-			removed++;
+			containerNodeRemoved++;
 		}
 	}
 
@@ -188,23 +268,30 @@ public class YarnManagedContainerGroupsTests {
 		public int groupRemoved;
 		public int groupMemberAdded;
 		public int groupMemberRemoved;
+		public YarnContainerGroup lastGroup;
+		public YarnContainerNode lastNode;
 		@Override
 		public void groupAdded(YarnContainerGroup group) {
 			groupAdded++;
+			lastGroup = group;
 		}
 		@Override
 		public void groupRemoved(YarnContainerGroup group) {
 			groupRemoved++;
+			lastGroup = group;
 		}
 		@Override
 		public void groupMemberAdded(YarnContainerGroup group, YarnContainerNode node) {
 			groupMemberAdded++;
+			lastGroup = group;
+			lastNode = node;
 		}
 		@Override
 		public void groupMemberRemoved(YarnContainerGroup group, YarnContainerNode node) {
 			groupMemberRemoved++;
+			lastGroup = group;
+			lastNode = node;
 		}
-
 	}
 
 }

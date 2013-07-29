@@ -67,7 +67,7 @@ public class ComplexExampleTests extends AbstractYarnClusterTests {
 	private final String PAT_ALL = "/**/*.std*";
 
 	@Test
-	@Timed(millis=300000)
+	@Timed(millis=360000)
 	public void testAppSubmission() throws Exception {
 		// submit and wait running state
 		ApplicationId applicationId = submitApplication();

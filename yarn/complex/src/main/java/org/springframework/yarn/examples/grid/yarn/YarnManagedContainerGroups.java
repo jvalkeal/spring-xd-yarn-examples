@@ -48,12 +48,18 @@ public class YarnManagedContainerGroups implements
 
 	private final static Log log = LogFactory.getLog(YarnManagedContainerGroups.class);
 
-	/** We always have one reservation for default group name */
+	/** Reservation for default group name */
 	public final static String DEFAULT_GROUP = "default";
+
+	/** Reservation for default fallback group name */
+	public final static String DEFAULT_FALLBACK_GROUP = "fallback-default";
 
 	/** Structure for group id <-> group */
 	private final Hashtable<String, YarnContainerGroup> managedGroups =
 			new Hashtable<String, YarnContainerGroup>();
+
+	/** Fallback for containers with no group */
+	private final YarnContainerGroup unmanagedContainerGroup = new YarnContainerGroup(DEFAULT_FALLBACK_GROUP, -1);
 
 	/** Container to group resolver if exists */
 	private ContainerGroupResolver resolver;
@@ -73,7 +79,7 @@ public class YarnManagedContainerGroups implements
 	 * Instantiates a new yarn managed container groups.
 	 */
 	public YarnManagedContainerGroups() {
-		this(false);
+		this(true);
 	}
 
 	/**
@@ -82,17 +88,17 @@ public class YarnManagedContainerGroups implements
 	 * @param registerDefaultGroup the register default group
 	 */
 	public YarnManagedContainerGroups(boolean registerDefaultGroup) {
-		this(registerDefaultGroup, DEFAULT_GROUP);
+		this(registerDefaultGroup ? DEFAULT_GROUP : null);
 	}
 
 	/**
 	 * Instantiates a new yarn managed container groups.
 	 *
-	 * @param registerDefaultGroup the register default group
+	 * @param defaultGroupName Default group name to register
 	 */
-	public YarnManagedContainerGroups(boolean registerDefaultGroup, String groupName) {
-		if (registerDefaultGroup) {
-			managedGroups.put(groupName, new YarnContainerGroup(groupName));
+	public YarnManagedContainerGroups(String defaultGroupName) {
+		if (defaultGroupName != null) {
+			managedGroups.put(defaultGroupName, new YarnContainerGroup(defaultGroupName));
 		}
 	}
 
@@ -158,51 +164,60 @@ public class YarnManagedContainerGroups implements
 	public void addContainerNode(YarnContainerNode node) {
 		Container container = node.getContainer();
 		Assert.notNull(container, "Yarn Container must be set");
-
+		YarnContainerGroup g = null;
+		boolean added = false;
 		List<String> resolvesGroups = resolveGroupNamesInternal(container);
 
-		if (log.isDebugEnabled()) {
-			log.debug("Matched node=" + node + " to groups " + StringUtils.collectionToCommaDelimitedString(resolvesGroups));
-		}
-
-		for (String name : resolvesGroups) {
-			if (!managedGroups.containsKey(name)) {
-				managedGroups.put(name, new YarnContainerGroup(name));
-				if (log.isDebugEnabled()) {
-					log.debug("Creating group " + name);
+		if (!resolvesGroups.isEmpty()) {
+			if (log.isDebugEnabled()) {
+				log.debug("Matched node=" + node + " to groups " + StringUtils.collectionToCommaDelimitedString(resolvesGroups));
+			}
+			for (String name : resolvesGroups) {
+				g = managedGroups.get(name);
+				if(g != null && !g.isFull()) {
+					g.addMember(node);
+					added = true;
+					if (log.isDebugEnabled()) {
+						log.debug("Added " + ConverterUtils.toString(container.getId()) + " to " + g.getId());
+					}
+					break;
 				}
 			}
 		}
 
-		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
-			YarnContainerGroup g = managedGroups.get(entry.getKey());
-			if(g != null && !g.isFull()) {
-				g.addMember(new DefaultYarnContainerNode(container));
-				if (log.isDebugEnabled()) {
-					log.debug("Added " + ConverterUtils.toString(container.getId()) + " to " + g.getId());
-				}
-				break;
+		if (!added) {
+			if (log.isDebugEnabled()) {
+				log.debug("No match for groups for node " + node + " adding to fallback group");
 			}
+			g = unmanagedContainerGroup;
+			g.addMember(node);
 		}
 
 		containerGridListener.containerNodeAdded(node);
-
+		containerGroupsListener.groupMemberAdded(g, node);
 	}
 
 	@Override
 	public void removeContainerNode(String id) {
 		YarnContainerNode node = null;
+		YarnContainerGroup g = null;
 		for (Entry<String, YarnContainerGroup> entry : managedGroups.entrySet()) {
 			YarnContainerGroup group = entry.getValue();
 			if ((node = group.removeMember(id)) != null) {
 				if (log.isDebugEnabled()) {
 					log.debug("Removed member " + node);
 				}
+				g = group;
 				break;
 			}
 		}
-		if (node != null) {
+		if (node == null) {
+			g = unmanagedContainerGroup;
+			node = unmanagedContainerGroup.removeMember(id);
+		}
+		if (node != null && g != null) {
 			containerGridListener.containerNodeRemoved(node);
+			containerGroupsListener.groupMemberRemoved(g, node);
 		}
 	}
 

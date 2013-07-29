@@ -61,6 +61,11 @@
 						<value>*</value>
 					</list>
 				</entry>
+				<entry key="default">
+					<list>
+						<value>*</value>
+					</list>
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -79,6 +84,9 @@
 		<property name="groupSizes">
 			<map>
 				<entry key="xdgroup">
+					<value>0</value>
+				</entry>
+				<entry key="default">
 					<value>0</value>
 				</entry>
 			</map>
