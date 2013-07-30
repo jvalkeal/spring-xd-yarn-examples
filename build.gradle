@@ -93,6 +93,7 @@ configure(yarnExampleProjectsWithCommon()) {
 		compile "org.springframework.xd:spring-xd-rest-client:$springXdVersion"
 		compile "org.springframework.data:spring-yarn:$springDataVersion"
 		compile "org.springframework.data:spring-yarn-thrift:$springDataVersion"
+		compile "com.hazelcast:hazelcast:$hazelcastVersion"
 		runtime "org.springframework.data:spring-data-hadoop:$springDataVersion"
 		runtime "org.springframework.data:spring-data-hadoop-core:$springDataVersion"
 		runtime "org.apache.hadoop:hadoop-yarn-api:$hadoopVersion"
